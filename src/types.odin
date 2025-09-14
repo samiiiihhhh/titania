@@ -8,6 +8,7 @@ import "core:mem/virtual"
 Type_Kind :: enum u8 {
 	Invalid,
 
+	Nil,
 	Bool,
 	Char,
 	Int,
@@ -68,6 +69,7 @@ Type_Proc :: struct {
 
 
 t_invalid := &Type{kind = .Invalid, size = 0, align = 1}
+t_nil     := &Type{kind = .Nil,     size = 8, align = 8} // pointer sized
 t_bool    := &Type{kind = .Bool,    size = 1, align = 1}
 t_char    := &Type{kind = .Char,    size = 1, align = 1}
 t_int     := &Type{kind = .Int,     size = 8, align = 8}
@@ -109,7 +111,7 @@ type_size_of :: proc(t: ^Type) -> i64 {
 	case: fallthrough
 	case .Invalid:
 		return 0
-	case .Bool, .Char, .Int, .Real, .Byte, .Set:
+	case .Nil, .Bool, .Char, .Int, .Real, .Byte, .Set:
 		return t.size
 	case .Array:
 		array := t.variant.(^Type_Array)
@@ -249,6 +251,8 @@ type_to_string_to_writer :: proc(w: io.Writer, t: ^Type) {
 		switch t.kind {
 		case .Invalid:
 			fmt.wprint(w, "<invalid>")
+		case .Nil:
+			fmt.wprint(w, "nil")
 		case .Bool:
 			fmt.wprint(w, "bool")
 		case .Char:

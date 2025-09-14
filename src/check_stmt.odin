@@ -84,7 +84,15 @@ check_stmt :: proc(c: ^Checker_Context, stmt: ^Ast_Stmt) {
 		if lhs.mode != .LValue {
 			error(c, s.lhs.pos, "cannot assigned to left-hand-side as it is not addressable")
 		}
-		if !types_equal(lhs.type, rhs.type) {
+		if rhs.mode == .Nil {
+			#partial switch lhs.type.kind {
+			case .Pointer, .Set:
+				// okay
+			case:
+				error(c, lhs.expr.pos, "'nil' can only be assigned to pointers and set types, got %s", type_to_string(lhs.type))
+			}
+
+		} else if !types_equal(lhs.type, rhs.type) {
 			error(c, s.lhs.pos, "cannot assigned to left-hand-side as types do not match, %s vs %s", type_to_string(lhs.type), type_to_string(rhs.type))
 		}
 	}

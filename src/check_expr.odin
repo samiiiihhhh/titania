@@ -40,6 +40,7 @@ assign_entity_to_operand :: proc(c: ^Checker_Context, e: ^Entity, o: ^Operand, e
 	case .Nil:
 		o.mode  = .Nil
 		o.expr  = expr
+		o.type  = t_nil
 		o.value = nil
 	case .Const:
 		o.mode  = .Const
@@ -169,6 +170,7 @@ check_expr_internal :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 		case .Nil:
 			o.mode = .Nil
 			o.expr = expr
+			o.type = t_nil
 		case .True:
 			o.mode  = .Const
 			o.expr  = expr
