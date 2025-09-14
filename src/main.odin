@@ -1,6 +1,8 @@
 package titania
 
 import "core:path/filepath"
+import "core:mem/virtual"
+import "core:fmt"
 
 main :: proc() {
 	filename, _ := filepath.abs("test.titania")
@@ -11,5 +13,7 @@ main :: proc() {
 	}
 	defer parser_fini(&p)
 
-	parse(&p)
+	module: Module
+	parse(&p, &module)
+	fmt.printfln("%#v", module)
 }
