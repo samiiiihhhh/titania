@@ -206,17 +206,14 @@ parse_var_decl :: proc(p: ^Parser, tok: Token) -> ^Ast_Var_Decl {
 	decl.type = parse_type(p)
 	return decl
 }
-// proc_decl = proc_heading ";" proc_body
+// proc_decl = "proc" ident formal_parameters ";" proc_body
 parse_proc_decl :: proc(p: ^Parser) -> ^Ast_Proc_Decl {
 	decl := ast_new(p.module, p.curr_token.pos, Ast_Proc_Decl)
 
 	{
-		// proc_heading = "proc" ident [formal_parameters]
 		decl.tok = expect_token(p, .Proc)
 		decl.name = parse_ident(p)
-		if peek_token(p, .Paren_Open) {
-			decl.parameters = parse_formal_parameters(p)
-		}
+		decl.parameters = parse_formal_parameters(p)
 	}
 
 	expect_token(p, .Semicolon)
@@ -330,7 +327,7 @@ parse_factor :: proc(p: ^Parser) -> ^Ast_Expr {
 		set.elements.allocator = ast_allocator(p.module)
 
 
-		set.open = expect_token(p, .Bracket_Open)
+		set.open = expect_token(p, .Brace_Open)
 		for !peek_token(p, .Bracket_Close) &&
 		    !peek_token(p, .End) &&
 		    !peek_token(p, .EOF) {
@@ -340,7 +337,7 @@ parse_factor :: proc(p: ^Parser) -> ^Ast_Expr {
 				break
 			}
 		}
-		set.close = expect_token(p, .Bracket_Close)
+		set.close = expect_token(p, .Brace_Close)
 		return set
 
 	case .Paren_Open:
@@ -614,9 +611,6 @@ parse_stmt :: proc(p: ^Parser) -> ^Ast_Stmt {
 		return assign_stmt
 	}
 
-	if _, ok := lhs.variant.(^Ast_Call_Expr); !ok {
-		syntax_error(&p.tok, tok.pos, "expected a procedure call as a statement, got something else")
-	}
 	expr_stmt := ast_new(p.module, lhs.pos, Ast_Expr_Stmt)
 	expr_stmt.expr = lhs
 	return expr_stmt

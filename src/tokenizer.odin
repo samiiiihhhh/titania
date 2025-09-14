@@ -197,6 +197,14 @@ next_rune :: proc(t: ^Tokenizer) -> rune {
 	return t.ch
 }
 
+peek_rune :: proc(t: ^Tokenizer) -> rune {
+	prev := t^
+	ch := next_rune(t)
+	t^ = prev
+	return ch
+}
+
+
 is_valid_string_literal :: proc(str: string) -> bool {
 	s := str
 	if len(s) < 2 {
@@ -419,7 +427,7 @@ get_token :: proc(t: ^Tokenizer) -> (token: Token) {
 			break
 		}
 		skip_digits(t)
-		if t.ch == '.' {
+		if t.ch == '.' && peek_rune(t) != '.' {
 			next_rune(t)
 			token.kind = .Real
 			skip_digits(t)

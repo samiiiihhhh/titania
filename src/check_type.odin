@@ -85,7 +85,7 @@ check_type :: proc(c: ^Checker_Context, ast: Ast_Type) -> ^Type {
 		case ^Ast_Record_Type:
 			t := type_new(c.arena, .Record, Type_Record)
 			t.scope = scope_new(c.module, c.scope)
-			scope_push(c, t.scope)
+			scope_push(c)
 			defer scope_pop(c)
 
 			t.entity = nil
@@ -116,7 +116,7 @@ check_type :: proc(c: ^Checker_Context, ast: Ast_Type) -> ^Type {
 			return t
 
 		case ^Ast_Proc_Type:
-			scope_push(c, c.scope)
+			scope_push(c)
 			defer scope_pop(c)
 			return check_proc_type(c, v.parameters[:])
 		}

@@ -137,15 +137,14 @@ check_type_decl :: proc(c: ^Checker_Context, decl: ^Ast_Type_Decl) {
 
 		case ^Ast_Record_Type:
 			t := type_new(c.arena, .Record, Type_Record)
-			t.scope = scope_new(c.module, c.scope)
-
-			scope_insert_entity(t.scope, entity)
-
-			scope_push(c, t.scope)
-			defer scope_pop(c)
 
 			t.entity = entity
 			entity.type = t
+			scope_insert_entity(c.scope, entity)
+
+			t.scope = scope_push(c)
+			defer scope_pop(c)
+
 			field_count := 0
 			for field in v.fields {
 				field_count += len(field.names)
@@ -171,9 +170,8 @@ check_type_decl :: proc(c: ^Checker_Context, decl: ^Ast_Type_Decl) {
 			t.fields = t.fields[:index]
 
 		case ^Ast_Proc_Type:
-			scope_push(c, c.scope)
-			defer scope_pop(c
-			                )
+			scope_push(c)
+			defer scope_pop(c)
 			t := check_proc_type(c, v.parameters[:])
 			entity.type = t
 			entity.scope = c.scope
@@ -189,10 +187,14 @@ check_proc_decl :: proc(c: ^Checker_Context, decl: ^Ast_Proc_Decl) {
 	entity.decl = decl
 	scope_insert_entity(c.scope, entity)
 
-	scope_push(c, c.scope)
+	scope_push(c)
 	defer scope_pop(c)
 
 	entity.type = check_proc_type(c, decl.parameters[:])
+
+	prev_proc := c.curr_proc
+	c.curr_proc = entity
+	defer c.curr_proc = prev_proc
 
 	// body
 	for decl in decl.decls {

@@ -14,6 +14,18 @@ Addressing_Mode :: enum {
 	Builtin,
 }
 
+@(rodata)
+addressing_mode_string := [Addressing_Mode]string {
+	.Invalid  = "<invalid>",
+	.No_Value = "no value",
+	.Nil      = "nil",
+	.RValue   = "rvalue",
+	.LValue   = "lvalue",
+	.Const    = "const",
+	.Type     = "type",
+	.Builtin  = "builtin",
+}
+
 Operand :: struct {
 	expr:       ^Ast_Expr,
 	type:       ^Type,
@@ -47,6 +59,7 @@ Checker_Context :: struct {
 	scope:  ^Scope,
 	mode:   Addressing_Mode,
 	value:  Const_Value,
+	curr_proc: ^Entity,
 }
 
 Module :: struct {
@@ -121,8 +134,9 @@ scope_lookup :: proc(s: ^Scope, name: string) -> (e: ^Entity, ok: bool) {
 	return
 }
 
-scope_push :: proc(c: ^Checker_Context, s: ^Scope) {
-	c.scope = s
+scope_push :: proc(c: ^Checker_Context) -> ^Scope {
+	c.scope = scope_new(c.module, c.scope)
+	return c.scope
 }
 scope_pop :: proc(c: ^Checker_Context) -> ^Scope {
 	s := c.scope

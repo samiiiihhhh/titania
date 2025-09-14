@@ -220,14 +220,53 @@ check_expr :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 		}
 
 	case ^Ast_Selector_Expr:
-		// check_expr(c, o, e.lhs)
-		panic("Ast_Selector_Expr")
+		check_expr(c, o, e.lhs)
+		#partial switch rhs in e.rhs.variant {
+		case ^Ast_Ident:
+			#partial switch o.mode {
+			case .RValue, .LValue:
+				#partial switch o.type.kind {
+				case .Record:
+					record := o.type.variant.(^Type_Record)
+					name := rhs.tok.text
+					if field, ok := scope_lookup_current(record.scope, name); ok {
+						o.type = field.type
+						o.value = nil
+					} else {
+						error(c, e.rhs.pos, "unable to find field '%s' for type %s'", name, type_to_string(o.type))
+					}
+				case:
+					error(c, e.rhs.pos, "%s cannot be used in a selector expression only record types, got %s", type_to_string(o.type))
+				}
+			case:
+				error(c, e.rhs.pos, "%s cannot be used in a selector expression", addressing_mode_string[o.mode])
+			}
+		case:
+			error(c, e.rhs.pos, "invalid selector expression")
+		}
+
 
 	case ^Ast_Paren_Expr:
 		check_expr(c, o, e.expr)
 
 	case ^Ast_Set_Expr:
-		panic("Ast_Set_Expr")
+		o.type = t_set
+		o.mode = .RValue
+		for element in e.elements {
+			lhs, rhs: Operand
+
+			check_expr(c, &lhs, element.lhs)
+			if !type_is_integer_like(lhs.type) {
+				error(c, lhs.expr.pos, "expected an integer-like value for a set expression, got %s", type_to_string(lhs.type))
+			}
+
+			if erhs, ok := element.rhs.?; ok {
+				check_expr(c, &rhs, erhs)
+				if !type_is_integer_like(lhs.type) {
+					error(c, rhs.expr.pos, "expected an integer-like value for a set expression, got %s", type_to_string(rhs.type))
+				}
+			}
+		}
 
 	case ^Ast_Index_Expr:
 		check_expr(c, o, e.expr)
