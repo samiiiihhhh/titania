@@ -43,7 +43,7 @@ Entity :: struct {
 
 	decl: ^Ast_Decl,
 
-	import_module: ^Module,
+	import_scope: ^Scope,
 	value:  Const_Value,
 	builtin_id: Builtin_Id,
 }

@@ -25,6 +25,8 @@ Operand :: struct {
 Checker_Info :: struct {
 	arena: virtual.Arena,
 	builtin_scope: ^Scope,
+
+	modules: map[string]^Module,
 }
 
 Checker_Context :: struct {
@@ -155,11 +157,36 @@ check_module :: proc(info: ^Checker_Info, m: ^Module) {
 	m.info = info
 	m.scope = scope_new(m, info.builtin_scope)
 
-
 	c := &Checker_Context{}
 	c.module = m
 	c.scope = m.scope
 	c.arena = &info.arena
+
+	if m.name.text not_in info.modules {
+		info.modules[m.name.text] = m
+	} else {
+		error(c, m.name.pos, "module '%s' already exists", m.name.text)
+	}
+
+	for imp in m.imports {
+		name := imp.module.tok.text
+		optional_name := name
+		if new_name, ok := imp.optional_name.?; ok {
+			optional_name = new_name.tok.text
+		}
+
+		if name == "builtin" {
+			e := entity_new(&info.arena, .Import, optional_name, t_invalid, c.scope)
+			e.import_scope = info.builtin_scope
+			scope_insert_entity(c.scope, e)
+		} else if found, ok := info.modules[name]; ok {
+			e := entity_new(&info.arena, .Import, optional_name, t_invalid, c.scope)
+			e.import_scope = found.scope
+			scope_insert_entity(c.scope, e)
+		} else {
+			error(c, imp.module.tok.pos, "module '%s' could not be found", name)
+		}
+	}
 
 	for decl in m.decls {
 		check_decl(c, decl)

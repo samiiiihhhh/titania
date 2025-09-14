@@ -63,7 +63,6 @@ assign_entity_to_operand :: proc(c: ^Checker_Context, e: ^Entity, o: ^Operand, e
 		o.value = nil
 
 	case .Import:
-		error(c, e.pos, "illegal use of an import name")
 		o.mode  = .Invalid
 		o.type  = t_invalid
 		o.expr  = expr
@@ -146,7 +145,7 @@ check_expr :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 			o.mode = .Invalid
 			return
 		}
-		found, found_ok := scope_lookup(module.scope, rhs)
+		found, found_ok := scope_lookup(module.import_scope, rhs)
 		if !found_ok {
 			error(c, e.pos, "'%s' does not exist in the module '%s'", rhs, lhs)
 			o.type = t_invalid
@@ -212,7 +211,7 @@ check_expr :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 		}
 
 	case ^Ast_Selector_Expr:
-		check_expr(c, o, e.lhs)
+		// check_expr(c, o, e.lhs)
 		panic("Ast_Selector_Expr")
 
 	case ^Ast_Paren_Expr:
@@ -346,6 +345,16 @@ check_expr :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 				o.value = nil
 			}
 
+		case .RValue, .LValue:
+			if o.type.kind != .Proc {
+				error(c, e.call.pos, "expected a procedure value, got %s", type_to_string(o.type))
+				o.mode = .No_Value
+				o.type = t_invalid
+				return
+			}
+
+			o.mode = .No_Value
+			o.type = t_invalid
 		case:
 			o.mode = .No_Value
 			o.type = t_invalid

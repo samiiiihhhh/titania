@@ -413,6 +413,7 @@ parse_qual_ident :: proc(p: ^Parser) -> Ast_Ident_Or_Qual_Ident {
 		qual := ast_new(p.module, dot.pos, Ast_Qual_Ident)
 		qual.lhs = lhs.tok
 		qual.rhs = rhs.tok
+		return qual
 	}
 	return lhs
 }
