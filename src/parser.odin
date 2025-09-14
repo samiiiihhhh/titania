@@ -77,6 +77,8 @@ parse :: proc(p: ^Parser, module: ^Module) -> bool {
 parse_module :: proc(p: ^Parser, module: ^Module) -> bool {
 	p.module = module
 
+	module.filename = module_clone_string(module, p.tok.filename)
+
 	module.tok  = expect_token(p, .Module) or_return
 	module.name = expect_token(p, .Ident)  or_return
 
@@ -114,14 +116,14 @@ parse_import_list :: proc(p: ^Parser) -> (list: [dynamic]^Ast_Import) {
 
 parse_ident :: proc(p: ^Parser) -> ^Ast_Ident {
 	tok, _ := expect_token(p, .Ident)
-	ident := ast_new(p.module, Ast_Ident)
+	ident := ast_new(p.module, tok.pos, Ast_Ident)
 	ident.tok = tok
 	return ident
 }
 
 // import_decl = ident [":=" ident]
 parse_import_decl :: proc(p: ^Parser, tok: Token) -> ^Ast_Import {
-	imp := ast_new(p.module, Ast_Import)
+	imp := ast_new(p.module, tok.pos, Ast_Import)
 	imp.tok = tok
 	name_or_module := parse_ident(p)
 	if allow_token(p, .Assign) {
@@ -174,7 +176,7 @@ parse_decl_sequence :: proc(p: ^Parser) -> (seq: [dynamic]^Ast_Decl) {
 
 // const_decl = ident "=" const_expr
 parse_const_decl :: proc(p: ^Parser, tok: Token) -> ^Ast_Const_Decl {
-	decl := ast_new(p.module, Ast_Const_Decl)
+	decl := ast_new(p.module, tok.pos, Ast_Const_Decl)
 	decl.tok = tok
 	decl.name = parse_ident(p)
 	expect_token(p, .Equal)
@@ -183,7 +185,7 @@ parse_const_decl :: proc(p: ^Parser, tok: Token) -> ^Ast_Const_Decl {
 }
 // type_decl = ident "="" struct_type
 parse_type_decl :: proc(p: ^Parser, tok: Token) -> ^Ast_Type_Decl {
-	decl := ast_new(p.module, Ast_Type_Decl)
+	decl := ast_new(p.module, tok.pos, Ast_Type_Decl)
 	decl.tok = tok
 	decl.name = parse_ident(p)
 	expect_token(p, .Equal)
@@ -192,15 +194,16 @@ parse_type_decl :: proc(p: ^Parser, tok: Token) -> ^Ast_Type_Decl {
 }
 // var_decl = ident_list ":" type
 parse_var_decl :: proc(p: ^Parser, tok: Token) -> ^Ast_Var_Decl {
-	decl := ast_new(p.module, Ast_Var_Decl)
-	parse_ident_list(p)
+	decl := ast_new(p.module, tok.pos, Ast_Var_Decl)
+	decl.tok = tok
+	decl.names = parse_ident_list(p)
 	expect_token(p, .Colon)
-	parse_type(p)
+	decl.type = parse_type(p)
 	return decl
 }
 // proc_decl = proc_heading ";" proc_body
 parse_proc_decl :: proc(p: ^Parser) -> ^Ast_Proc_Decl {
-	decl := ast_new(p.module, Ast_Proc_Decl)
+	decl := ast_new(p.module, p.curr_token.pos, Ast_Proc_Decl)
 
 	{
 		// proc_heading = "proc" ident [formal_parameters]
@@ -236,12 +239,20 @@ parse_const_expr :: proc(p: ^Parser) -> ^Ast_Expr {
 
 // expr = simple_expr {relation simple_expr}
 parse_expr :: proc(p: ^Parser) -> ^Ast_Expr {
-	parse_simple_expr(p)
+	lhs := parse_simple_expr(p)
 	for is_relation(p.curr_token.kind) {
-		advance_token(p)
-		parse_simple_expr(p)
+		op := advance_token(p)
+
+		bin := ast_new(p.module, op.pos, Ast_Binary_Expr)
+
+		rhs := parse_simple_expr(p)
+
+		bin.lhs = lhs
+		bin.op = op
+		bin.rhs = rhs
+		return bin
 	}
-	return parse_do_bad_expr(p)
+	return lhs
 }
 
 is_relation :: proc(kind: Token_Kind) -> bool {
@@ -262,7 +273,7 @@ parse_simple_expr :: proc(p: ^Parser) -> ^Ast_Expr {
 		op := advance_token(p)
 		rhs := parse_term(p)
 
-		bin := ast_new(p.module, Ast_Binary_Expr)
+		bin := ast_new(p.module, op.pos, Ast_Binary_Expr)
 		bin.lhs = lhs
 		bin.op  = op
 		bin.rhs = rhs
@@ -273,7 +284,7 @@ parse_simple_expr :: proc(p: ^Parser) -> ^Ast_Expr {
 }
 
 parse_unary_expr :: proc(p: ^Parser) -> ^Ast_Unary_Expr {
-	expr := ast_new(p.module, Ast_Unary_Expr)
+	expr := ast_new(p.module, p.curr_token.pos, Ast_Unary_Expr)
 	if peek_token(p, .Add) || peek_token(p, .Sub) {
 		expr.op = advance_token(p)
 		expr.expr = parse_simple_expr(p)
@@ -291,7 +302,7 @@ parse_term :: proc(p: ^Parser) -> ^Ast_Expr {
 		op := advance_token(p)
 		rhs := parse_factor(p)
 
-		bin := ast_new(p.module, Ast_Binary_Expr)
+		bin := ast_new(p.module, op.pos, Ast_Binary_Expr)
 		bin.lhs = lhs
 		bin.op  = op
 		bin.rhs = rhs
@@ -306,11 +317,11 @@ parse_term :: proc(p: ^Parser) -> ^Ast_Expr {
 parse_factor :: proc(p: ^Parser) -> ^Ast_Expr {
 	#partial switch p.curr_token.kind {
 	case .Integer, .Real, .String, .Nil, .True, .False:
-		lit := ast_new(p.module, Ast_Literal)
+		lit := ast_new(p.module, p.curr_token.pos, Ast_Literal)
 		lit.tok = advance_token(p)
 		return lit
 	case .Brace_Open: // set = "{" [element {"," element} [","]} "}"
-		set := ast_new(p.module, Ast_Set_Expr)
+		set := ast_new(p.module, p.curr_token.pos, Ast_Set_Expr)
 		set.elements.allocator = ast_allocator(p.module)
 
 
@@ -328,13 +339,13 @@ parse_factor :: proc(p: ^Parser) -> ^Ast_Expr {
 		return set
 
 	case .Paren_Open:
-		paren := ast_new(p.module, Ast_Paren_Expr)
+		paren := ast_new(p.module, p.curr_token.pos, Ast_Paren_Expr)
 		paren.open  = expect_token(p, .Paren_Open)
 		paren.expr  = parse_expr(p)
 		paren.close = expect_token(p, .Paren_Close)
 		return paren
 	case .Not:
-		unary := ast_new(p.module, Ast_Unary_Expr)
+		unary := ast_new(p.module, p.curr_token.pos, Ast_Unary_Expr)
 		unary.op = expect_token(p, .Not)
 		unary.expr = parse_factor(p)
 		return unary
@@ -344,7 +355,7 @@ parse_factor :: proc(p: ^Parser) -> ^Ast_Expr {
 
 // element = expr [".." expr]
 parse_element :: proc(p: ^Parser) -> ^Ast_Element {
-	element := ast_new(p.module, Ast_Element)
+	element := ast_new(p.module, p.curr_token.pos, Ast_Element)
 	element.lhs = parse_expr(p)
 	if allow_token(p, .Ellipsis) {
 		element.rhs = parse_expr(p)
@@ -392,8 +403,9 @@ parse_type :: proc(p: ^Parser) -> Ast_Type {
 parse_qual_ident :: proc(p: ^Parser) -> Ast_Ident_Or_Qual_Ident {
 	lhs := parse_ident(p)
 	if allow_token(p, .Dot) {
+		dot := p.prev_token
 		rhs := parse_ident(p)
-		qual := ast_new(p.module, Ast_Qual_Ident)
+		qual := ast_new(p.module, dot.pos, Ast_Qual_Ident)
 		qual.lhs = lhs.tok
 		qual.rhs = rhs.tok
 	}
@@ -430,14 +442,21 @@ parse_qual_ident_as_expr :: proc(p: ^Parser) -> ^Ast_Expr {
 parse_struct_type :: proc(p: ^Parser) -> ^Ast_Structured_Type {
 	if allow_token(p, .Bracket_Open) {
 		// array_type = "["" const_expr {"," const_expr} "]" type
-		parse_const_expr(p)
+		array := ast_new(p.module, p.curr_token.pos, Ast_Array_Type)
+		array.counts.allocator = ast_allocator(p.module)
+
+		lhs := parse_const_expr(p)
+		append(&array.counts, lhs)
 		for allow_token(p, .Comma) {
-			parse_const_expr(p)
+			rhs := parse_const_expr(p)
+			append(&array.counts, rhs)
 		}
 		expect_token(p, .Bracket_Close)
-		parse_type(p)
+		elem := parse_type(p)
+		array.elem = elem
+		return array
 	} else if peek_token(p, .Record) {
-		type := ast_new(p.module, Ast_Record_Type)
+		type := ast_new(p.module, p.curr_token.pos, Ast_Record_Type)
 
 		type.tok = expect_token(p, .Record)
 
@@ -447,17 +466,21 @@ parse_struct_type :: proc(p: ^Parser) -> ^Ast_Structured_Type {
 			expect_token(p, .Paren_Close)
 		}
 		if !peek_token(p, .End) {
-			parse_field_list_sequence(p)
+			type.fields = parse_field_list_sequence(p)
 		}
 		expect_token(p, .End)
 
 		return type
 	} else if allow_token(p, .Caret) {
 		// pointer_type = "^" type
-		parse_type(p)
+		ptr := ast_new(p.module, p.curr_token.pos, Ast_Pointer_Type)
+		ptr.elem = parse_type(p)
+		return ptr
 	} else if allow_token(p, .Proc) {
 		// proc_type = "proc" formal_parameters
-		parse_formal_parameters(p)
+		sig := ast_new(p.module, p.curr_token.pos, Ast_Proc_Type)
+		sig.parameters = parse_formal_parameters(p)
+		return sig
 	}
 	return nil
 }
@@ -481,7 +504,7 @@ parse_field_list_sequence :: proc(p: ^Parser) -> (list: [dynamic]^Ast_Field_List
 
 // field_list = ident_list ":" type
 parse_field_list :: proc(p: ^Parser) -> ^Ast_Field_List {
-	fields := ast_new(p.module, Ast_Field_List)
+	fields := ast_new(p.module, p.curr_token.pos, Ast_Field_List)
 	fields.names = parse_ident_list(p)
 	expect_token(p, .Colon)
 	fields.type = parse_type(p)
@@ -498,7 +521,7 @@ parse_formal_parameters :: proc(p: ^Parser) -> (parameters: [dynamic]^Ast_Formal
 	for !peek_token(p, .Paren_Close) && !peek_token(p, .EOF) {
 		// fp_section {["var"] ident {"," ident} ":" formal_type}
 
-		param := ast_new(p.module, Ast_Formal_Parameter)
+		param := ast_new(p.module, p.curr_token.pos, Ast_Formal_Parameter)
 		param.names.allocator = ast_allocator(p.module)
 
 		if allow_token(p, .Var) {
@@ -522,10 +545,11 @@ parse_formal_parameters :: proc(p: ^Parser) -> (parameters: [dynamic]^Ast_Formal
 // format_type = "[" "]" qual_ident
 parse_formal_type :: proc(p: ^Parser) -> Ast_Type {
 	if allow_token(p, .Bracket_Open) {
+		pos := p.prev_token.pos
 		expect_token(p, .Bracket_Close)
-		array := ast_new(p.module, Ast_Array_Type)
-		array.count = nil
-		array.elem = parse_qual_ident_as_type(p)
+		array := ast_new(p.module, pos, Ast_Array_Type)
+		array.counts = nil
+		array.elem   = parse_qual_ident_as_type(p)
 		return &array.type_base
 	}
 	return parse_qual_ident_as_type(p)
@@ -533,7 +557,7 @@ parse_formal_type :: proc(p: ^Parser) -> Ast_Type {
 
 // stmt_sequence = stmt {";" stmt} [";"]
 parse_stmt_sequence :: proc(p: ^Parser) -> (seq: ^Ast_Stmt_Sequence) {
-	seq = ast_new(p.module, Ast_Stmt_Sequence)
+	seq = ast_new(p.module, p.curr_token.pos, Ast_Stmt_Sequence)
 	seq.stmts.allocator = ast_allocator(p.module)
 
 	for {
@@ -575,7 +599,7 @@ parse_stmt :: proc(p: ^Parser) -> ^Ast_Stmt {
 	lhs := parse_designator(p)
 	// assignment = designator ":=" expr
 	if allow_token(p, .Assign) {
-		assign_stmt := ast_new(p.module, Ast_Assign_Stmt)
+		assign_stmt := ast_new(p.module, tok.pos, Ast_Assign_Stmt)
 		assign_stmt.lhs = lhs
 		assign_stmt.tok = p.prev_token
 		assign_stmt.rhs = parse_expr(p)
@@ -585,7 +609,7 @@ parse_stmt :: proc(p: ^Parser) -> ^Ast_Stmt {
 	if _, ok := lhs.variant.(^Ast_Call_Expr); !ok {
 		syntax_error(&p.tok, tok.pos, "expected a procedure call as a statement, got something else")
 	}
-	expr_stmt := ast_new(p.module, Ast_Expr_Stmt)
+	expr_stmt := ast_new(p.module, lhs.pos, Ast_Expr_Stmt)
 	expr_stmt.expr = lhs
 	return expr_stmt
 }
@@ -595,7 +619,7 @@ parse_stmt :: proc(p: ^Parser) -> ^Ast_Stmt {
 //           ["else" stmt_sequence]
 //           "end"
 parse_if_stmt :: proc(p: ^Parser) -> ^Ast_If_Stmt {
-	stmt := ast_new(p.module, Ast_If_Stmt)
+	stmt := ast_new(p.module, p.curr_token.pos, Ast_If_Stmt)
 	stmt.tok_if   = expect_token(p, .If)
 	stmt.cond     = parse_expr(p)
 	stmt.tok_then = expect_token(p, .Then)
@@ -603,7 +627,7 @@ parse_if_stmt :: proc(p: ^Parser) -> ^Ast_If_Stmt {
 
 	stmt.elseif_stmts.allocator = ast_allocator(p.module)
 	for allow_token(p, .Elseif) {
-		elseif_stmt := ast_new(p.module, Ast_If_Stmt)
+		elseif_stmt := ast_new(p.module, p.curr_token.pos, Ast_If_Stmt)
 		elseif_stmt.tok_if   = p.prev_token
 		elseif_stmt.cond     = parse_expr(p)
 		elseif_stmt.tok_then = expect_token(p, .Then)
@@ -620,7 +644,7 @@ parse_if_stmt :: proc(p: ^Parser) -> ^Ast_If_Stmt {
 
 // case_stmt = "case" expr "of" case {"|" case} "end"
 parse_case_stmt :: proc(p: ^Parser) -> ^Ast_Case_Stmt {
-	stmt := ast_new(p.module, Ast_Case_Stmt)
+	stmt := ast_new(p.module, p.curr_token.pos, Ast_Case_Stmt)
 	stmt.tok_case = expect_token(p, .Case)
 	stmt.cond     = parse_expr(p)
 	stmt.tok_of   = expect_token(p, .Of)
@@ -638,7 +662,7 @@ parse_case_stmt :: proc(p: ^Parser) -> ^Ast_Case_Stmt {
 
 // case = [case_label_list ":" stmt_sequence]
 pase_case :: proc(p: ^Parser) -> ^Ast_Case {
-	c := ast_new(p.module, Ast_Case)
+	c := ast_new(p.module, p.curr_token.pos, Ast_Case)
 	c.labels = parse_case_list(p)
 	c.tok    = expect_token(p, .Colon)
 	c.body   = parse_stmt_sequence(p)
@@ -659,7 +683,7 @@ parse_case_list :: proc(p: ^Parser) -> (list: [dynamic]^Ast_Label_Range) {
 
 // label_range = label [".." label]
 parse_label_range :: proc(p: ^Parser) -> ^Ast_Label_Range {
-	range := ast_new(p.module, Ast_Label_Range)
+	range := ast_new(p.module, p.curr_token.pos, Ast_Label_Range)
 	range.lo = parse_label(p)
 	if allow_token(p, .Ellipsis) {
 		range.hi = parse_label(p)
@@ -682,7 +706,7 @@ parse_label :: proc(p: ^Parser) -> ^Ast_Expr {
 }
 
 parse_do_bad_expr :: proc(p: ^Parser) -> ^Ast_Bad_Expr {
-	bad := ast_new(p.module, Ast_Bad_Expr)
+	bad := ast_new(p.module, p.curr_token.pos, Ast_Bad_Expr)
 	bad.tok = p.curr_token
 	return bad
 }
@@ -693,7 +717,7 @@ parse_do_bad_expr :: proc(p: ^Parser) -> ^Ast_Bad_Expr {
 //              {"elseif" expr "then" stmt_sequence}
 //              "end"
 parse_while_stmt :: proc(p: ^Parser) -> ^Ast_While_Stmt {
-	stmt := ast_new(p.module, Ast_While_Stmt)
+	stmt := ast_new(p.module, p.curr_token.pos, Ast_While_Stmt)
 
 	stmt.tok_while = expect_token(p, .While)
 	stmt.cond = parse_expr(p)
@@ -703,7 +727,7 @@ parse_while_stmt :: proc(p: ^Parser) -> ^Ast_While_Stmt {
 	stmt.elseif_stmts.allocator = ast_allocator(p.module)
 
 	for allow_token(p, .Elseif) {
-		elseif_stmt := ast_new(p.module, Ast_While_Elseif_Stmt)
+		elseif_stmt := ast_new(p.module, p.prev_token.pos, Ast_While_Elseif_Stmt)
 
 		elseif_stmt.tok = p.prev_token
 		elseif_stmt.cond = parse_expr(p)
@@ -719,7 +743,7 @@ parse_while_stmt :: proc(p: ^Parser) -> ^Ast_While_Stmt {
 
 // repeat_stmt = "repeat" stmt_sequence "until" expr
 parse_repeat_stmt :: proc(p: ^Parser) -> ^Ast_Repeat_Stmt {
-	stmt := ast_new(p.module, Ast_Repeat_Stmt)
+	stmt := ast_new(p.module, p.curr_token.pos, Ast_Repeat_Stmt)
 	stmt.tok_repeat = expect_token(p, .Repeat)
 	stmt.body       = parse_stmt_sequence(p)
 	stmt.tok_until  = expect_token(p, .Until)
@@ -729,7 +753,7 @@ parse_repeat_stmt :: proc(p: ^Parser) -> ^Ast_Repeat_Stmt {
 
 // for_stmt = "for" ident ":=" expr "to" expr ["by" const_expr] "do" stmt_sequence "end"
 parse_for_stmt :: proc(p: ^Parser) -> ^Ast_For_Stmt {
-	stmt := ast_new(p.module, Ast_For_Stmt)
+	stmt := ast_new(p.module, p.curr_token.pos, Ast_For_Stmt)
 
 	stmt.tok_for = expect_token(p, .For)
 	stmt.name    = parse_ident(p)
@@ -766,26 +790,26 @@ parse_designator :: proc(p: ^Parser) -> ^Ast_Expr {
 parse_selector :: proc(p: ^Parser, lhs: ^Ast_Expr) -> ^Ast_Expr {
 	switch {
 	case allow_token(p, .Dot):
-		sel := ast_new(p.module, Ast_Selector_Expr)
+		sel := ast_new(p.module, lhs.pos, Ast_Selector_Expr)
 		sel.lhs = lhs
 		sel.tok = p.prev_token
 		sel.rhs = parse_ident(p)
 		return sel
 	case allow_token(p, .Bracket_Open):
-		index := ast_new(p.module, Ast_Index_Expr)
+		index := ast_new(p.module, lhs.pos, Ast_Index_Expr)
 		index.expr = lhs
 		index.indices = parse_expr_list(p)
 		expect_token(p, .Bracket_Close)
 		return index
 
 	case allow_token(p, .Caret):
-		deref := ast_new(p.module, Ast_Deref_Expr)
+		deref := ast_new(p.module, lhs.pos, Ast_Deref_Expr)
 		deref.expr = lhs
 		deref.tok = p.prev_token
 		return deref
 
 	case allow_token(p, .Paren_Open):
-		call := ast_new(p.module, Ast_Call_Expr)
+		call := ast_new(p.module, lhs.pos, Ast_Call_Expr)
 		call.call = lhs
 		call.parameters = parse_expr_list(p)
 		expect_token(p, .Paren_Close)

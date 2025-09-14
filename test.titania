@@ -1,9 +1,16 @@
 module out;
 	import texts, titania;
 
+	const
+		BUF_SIZE = 16;
+
 	type
 		Foo = record
 			a, b: int;
+			c: [BUF_SIZE]char;
+			nested: record
+				a, b: real;
+			end;
 		end;
 
 	var
@@ -17,7 +24,7 @@ module out;
 	proc write_int(x, n: int);
 		var
 			i: int;
-			a: [16]char;
+			a: [BUF_SIZE]char;
 	begin
 		i := 0;
 		if x < 0 then
@@ -42,7 +49,7 @@ module out;
 		until i = 0
 	end;
 
-	proc write_ln;
+	proc write_ln();
 	begin
 		texts.write_ln(w);
 		texts.append(titania.Log, w.buf);

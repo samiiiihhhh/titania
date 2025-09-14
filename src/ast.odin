@@ -6,9 +6,10 @@ import "core:mem"
 import "core:mem/virtual"
 
 @(require_results)
-ast_new :: proc(m: ^Module, $T: typeid) -> ^T {
+ast_new :: proc(m: ^Module, pos: Pos, $T: typeid) -> ^T {
 	ptr, err := virtual.new(&m.arena, T)
 	_ = err
+	ptr.pos = pos
 	when intrinsics.type_has_field(T, "variant") {
 		ptr.variant = ptr
 	}
@@ -20,20 +21,15 @@ ast_allocator :: proc(m: ^Module) -> mem.Allocator {
 	return virtual.arena_allocator(&m.arena)
 }
 
-Module :: struct {
-	arena: virtual.Arena `fmt:"-"`,
-
-	tok:  Token,
-	name: Token,
-
-	imports: [dynamic]^Ast_Import,
-
-	decls: [dynamic]^Ast_Decl,
-
-	entry: ^Ast_Stmt_Sequence,
+@(require_results)
+module_clone_string :: proc(m: ^Module, s: string) -> string {
+	v, _ := virtual.make_slice(&m.arena, []byte, len(s))
+	copy(v, s)
+	return string(s)
 }
 
 Ast_Import :: struct {
+	pos: Pos,
 	tok: Token, // "import"
 	optional_name: Maybe(^Ast_Ident),
 	module:        ^Ast_Ident,
@@ -41,6 +37,7 @@ Ast_Import :: struct {
 
 
 Ast_Decl :: struct {
+	pos: Pos,
 	variant: union #shared_nil {
 		^Ast_Const_Decl,
 		^Ast_Type_Decl,
@@ -80,6 +77,7 @@ Ast_Proc_Decl :: struct {
 }
 
 Ast_Formal_Parameter :: struct {
+	pos: Pos,
 	is_var: bool,
 	names:  [dynamic]^Ast_Ident,
 	type:   Ast_Type,
@@ -87,6 +85,7 @@ Ast_Formal_Parameter :: struct {
 
 
 Ast_Stmt_Sequence :: struct {
+	pos: Pos,
 	stmts: [dynamic]^Ast_Stmt
 }
 
@@ -102,6 +101,7 @@ Ast_Stmt_Kind :: enum {
 }
 
 Ast_Stmt :: struct {
+	pos: Pos,
 	variant: union #shared_nil {
 		^Ast_If_Stmt,
 		^Ast_Case_Stmt,
@@ -133,12 +133,14 @@ Ast_Case_Stmt :: struct {
 }
 
 Ast_Case :: struct {
+	pos: Pos,
 	labels: [dynamic]^Ast_Label_Range,
 	tok:    Token, // ":"
 	body:   ^Ast_Stmt_Sequence,
 }
 
 Ast_Label_Range :: struct {
+	pos: Pos,
 	lo: ^Ast_Expr,
 	hi: Maybe(^Ast_Expr),
 }
@@ -154,6 +156,7 @@ Ast_While_Stmt :: struct {
 }
 
 Ast_While_Elseif_Stmt :: struct {
+	pos: Pos,
 	tok:  Token,
 	cond: ^Ast_Expr,
 	body: ^Ast_Stmt_Sequence,
@@ -197,6 +200,8 @@ Ast_Assign_Stmt :: struct {
 
 
 Ast_Expr :: struct {
+	pos: Pos,
+
 	variant: union #shared_nil {
 		^Ast_Bad_Expr,
 		^Ast_Ident,
@@ -293,6 +298,7 @@ Ast_Set_Expr :: struct {
 }
 
 Ast_Element :: struct {
+	pos: Pos,
 	lhs: ^Ast_Expr,
 	rhs: Maybe(^Ast_Expr),
 }
@@ -305,6 +311,7 @@ Ast_Type :: union #shared_nil {
 }
 
 Ast_Structured_Type :: struct {
+	pos: Pos,
 	variant: union #shared_nil {
 		^Ast_Array_Type,
 		^Ast_Pointer_Type,
@@ -315,8 +322,8 @@ Ast_Structured_Type :: struct {
 
 Ast_Array_Type :: struct {
 	using type_base: Ast_Structured_Type,
-	count: Maybe(^Ast_Expr), // 'nil' when passed to procedures
-	elem: Ast_Type,
+	counts: [dynamic]^Ast_Expr, // 'nil' when passed to procedures
+	elem:   Ast_Type,
 }
 
 Ast_Pointer_Type :: struct {
@@ -333,6 +340,7 @@ Ast_Record_Type :: struct {
 }
 
 Ast_Field_List :: struct {
+	pos: Pos,
 	names: [dynamic]^Ast_Ident,
 	type:  Ast_Type,
 }

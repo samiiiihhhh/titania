@@ -15,5 +15,9 @@ main :: proc() {
 
 	module: Module
 	parse(&p, &module)
-	fmt.printfln("%#v", module)
+
+	info: Checker_Info
+	checker_info_init(&info)
+
+	check_module(&info, &module)
 }

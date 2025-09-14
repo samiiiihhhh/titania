@@ -7,7 +7,16 @@ syntax_error :: proc(t: ^Tokenizer, pos: Pos, format: string, args: ..any) {
 	fmt.eprintfln(format, args=args)
 }
 
-error :: proc(pos: Pos, format: string, args: ..any) {
-	fmt.eprintf("<file>(%d:%d) Error: ", pos.line, pos.column)
+error_module :: proc(m: ^Module, pos: Pos, format: string, args: ..any) {
+	fmt.eprintf("%s(%d:%d) Error: ", m.filename, pos.line, pos.column)
 	fmt.eprintfln(format, args=args)
+}
+
+error_checker :: proc(c: ^Checker_Context, pos: Pos, format: string, args: ..any) {
+	error_module(c.module, pos, format, ..args)
+}
+
+error :: proc{
+	error_module,
+	error_checker,
 }
