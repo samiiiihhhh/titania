@@ -539,6 +539,8 @@ parse_formal_parameters :: proc(p: ^Parser) -> (parameters: [dynamic]^Ast_Formal
 		expect_token(p, .Colon)
 		param.type = parse_formal_type(p)
 
+		append(&parameters, param)
+
 		_ = allow_token(p, .Semicolon)
 	}
 
@@ -826,9 +828,12 @@ parse_selector :: proc(p: ^Parser, lhs: ^Ast_Expr) -> ^Ast_Expr {
 
 // expr_list = expr {"," expr}
 parse_expr_list :: proc(p: ^Parser) -> (list: [dynamic]^Ast_Expr) {
-	parse_expr(p)
+	list.allocator = ast_allocator(p.module)
+	lhs := parse_expr(p)
+	append(&list, lhs)
 	for allow_token(p, .Comma) {
-		parse_expr(p)
+		rhs := parse_expr(p)
+		append(&list, rhs)
 	}
 	return
 }

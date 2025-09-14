@@ -2,6 +2,19 @@ package titania
 
 import "core:mem/virtual"
 
+check_decl :: proc(c: ^Checker_Context, decl: ^Ast_Decl) {
+	switch v in decl.variant {
+	case ^Ast_Const_Decl:
+		check_const_decl(c, v)
+	case ^Ast_Type_Decl:
+		check_type_decl(c, v)
+	case ^Ast_Var_Decl:
+		check_var_decl(c, v)
+	case ^Ast_Proc_Decl:
+		check_proc_decl(c, v)
+	}
+}
+
 check_const_decl :: proc(c: ^Checker_Context, decl: ^Ast_Const_Decl) {
 	name := decl.name.tok.text
 	entity := entity_new(c.arena, .Const, name, t_invalid, c.scope)
@@ -20,7 +33,17 @@ check_const_decl :: proc(c: ^Checker_Context, decl: ^Ast_Const_Decl) {
 }
 
 check_var_decl :: proc(c: ^Checker_Context, decl: ^Ast_Var_Decl) {
-
+	type := check_type(c, decl.type)
+	for name in decl.names {
+		vname := name.tok.text
+		found, ok := scope_lookup_current(c.scope, vname)
+		if ok {
+			error(c, name.pos, "'%s' has been previously declared in this scope", vname)
+			continue
+		}
+		e := entity_new(c.arena, .Var, vname, type, c.scope)
+		scope_insert_entity(c.scope, e)
+	}
 }
 
 check_type_decl :: proc(c: ^Checker_Context, decl: ^Ast_Type_Decl) {
@@ -36,7 +59,7 @@ check_type_decl :: proc(c: ^Checker_Context, decl: ^Ast_Type_Decl) {
 		ident := dt.tok.text
 		found, ok := scope_lookup(c.scope, ident)
 		if !ok {
-			error(c, decl.pos, "'%s' has not been declared in scope", ident)
+			error(c, decl.pos, "'%s' has not been declared", ident)
 			return
 		}
 		if found.kind != .Type {
@@ -50,7 +73,7 @@ check_type_decl :: proc(c: ^Checker_Context, decl: ^Ast_Type_Decl) {
 		rhs := dt.rhs.text
 		module, module_ok := scope_lookup(c.scope, lhs)
 		if !module_ok {
-			error(c, decl.pos, "'%s' has not been declared in scope", lhs)
+			error(c, decl.pos, "'%s' has not been declared", lhs)
 			return
 		}
 		if module.kind != .Import {
@@ -148,7 +171,12 @@ check_type_decl :: proc(c: ^Checker_Context, decl: ^Ast_Type_Decl) {
 			t.fields = t.fields[:index]
 
 		case ^Ast_Proc_Type:
-			panic("TODO(bill): proc type")
+			scope_push(c, c.scope)
+			defer scope_pop(c
+			                )
+			t := check_proc_type(c, v.parameters[:])
+			entity.type = t
+			entity.scope = c.scope
 		}
 	}
 
@@ -156,5 +184,27 @@ check_type_decl :: proc(c: ^Checker_Context, decl: ^Ast_Type_Decl) {
 }
 
 check_proc_decl :: proc(c: ^Checker_Context, decl: ^Ast_Proc_Decl) {
+	name := decl.name.tok.text
+	entity := entity_new(c.arena, .Proc, name, t_invalid, c.scope)
+	entity.decl = decl
+	scope_insert_entity(c.scope, entity)
 
+	scope_push(c, c.scope)
+	defer scope_pop(c)
+
+	entity.type = check_proc_type(c, decl.parameters[:])
+
+	// body
+	for decl in decl.decls {
+		check_decl(c, decl)
+	}
+
+	check_stmt_sequence(c, decl.body)
+
+	if re, ok := decl.return_expr.?; ok {
+		ret: Operand
+		check_expr(c, &ret, re)
+	}
 }
+
+

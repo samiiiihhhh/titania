@@ -202,6 +202,9 @@ Ast_Assign_Stmt :: struct {
 Ast_Expr :: struct {
 	pos: Pos,
 
+	value: Const_Value,
+	type:  ^Type,
+
 	variant: union #shared_nil {
 		^Ast_Bad_Expr,
 		^Ast_Ident,

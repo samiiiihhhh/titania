@@ -15,10 +15,11 @@ Addressing_Mode :: enum {
 }
 
 Operand :: struct {
-	expr:  ^Ast_Expr,
-	type:  ^Type,
-	mode:  Addressing_Mode,
-	value: Const_Value,
+	expr:       ^Ast_Expr,
+	type:       ^Type,
+	mode:       Addressing_Mode,
+	value:      Const_Value,
+	builtin_id: Builtin_Id,
 }
 
 Checker_Info :: struct {
@@ -54,53 +55,6 @@ Module :: struct {
 	scope: ^Scope,
 
 	info: ^Checker_Info,
-}
-
-
-Entity_Kind :: enum u32 {
-	Invalid,
-
-	Nil,
-
-	Const,
-	Type,
-	Var,
-	Proc,
-	Import,
-	Builtin,
-}
-
-@(rodata)
-entity_kind_string := [Entity_Kind]string{
-	.Invalid = "invalid",
-	.Nil     = "nil",
-	.Const   = "const",
-	.Type    = "type",
-	.Var     = "var",
-	.Proc    = "proc",
-	.Import  = "import name",
-	.Builtin = "builtin proc",
-}
-
-Entity_Flags :: distinct bit_set[Entity_Flag; u32]
-Entity_Flag :: enum {
-	By_Value, // procedure parameter
-}
-
-Entity :: struct {
-	kind:   Entity_Kind,
-	flags:  Entity_Flags,
-	scope:  ^Scope,
-	module: ^Module,
-
-	pos:  Pos,
-	name: string,
-	type: ^Type,
-
-	decl: ^Ast_Decl,
-
-	import_module: ^Module,
-	value:  Const_Value,
 }
 
 Scope :: struct {
@@ -188,7 +142,13 @@ checker_info_init :: proc(info: ^Checker_Info) {
 	scope_insert_entity(s, entity_new(&info.arena, .Type, "byte",    t_byte,    s))
 	scope_insert_entity(s, entity_new(&info.arena, .Type, "set",     t_set,     s))
 
+	for name, id in builtin_strings {
+		(name != "") or_continue
 
+		e := entity_new(&info.arena, .Builtin, name, t_invalid, s)
+		e.builtin_id = id
+		scope_insert_entity(s, e)
+	}
 }
 
 check_module :: proc(info: ^Checker_Info, m: ^Module) {
@@ -202,16 +162,7 @@ check_module :: proc(info: ^Checker_Info, m: ^Module) {
 	c.arena = &info.arena
 
 	for decl in m.decls {
-		switch v in decl.variant {
-		case ^Ast_Const_Decl:
-			check_const_decl(c, v)
-		case ^Ast_Type_Decl:
-			check_type_decl(c, v)
-		case ^Ast_Var_Decl:
-			check_var_decl(c, v)
-		case ^Ast_Proc_Decl:
-			check_proc_decl(c, v)
-		}
+		check_decl(c, decl)
 	}
 }
 

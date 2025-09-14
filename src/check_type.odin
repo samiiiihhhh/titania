@@ -1,5 +1,6 @@
 package titania
 
+import "core:fmt"
 import "core:mem/virtual"
 
 check_type :: proc(c: ^Checker_Context, ast: Ast_Type) -> ^Type {
@@ -115,8 +116,41 @@ check_type :: proc(c: ^Checker_Context, ast: Ast_Type) -> ^Type {
 			return t
 
 		case ^Ast_Proc_Type:
-			panic("TODO(bill): proc type")
+			scope_push(c, c.scope)
+			defer scope_pop(c)
+			return check_proc_type(c, v.parameters[:])
 		}
 	}
 	return t_invalid
+}
+
+@(require_results)
+check_proc_type :: proc(c: ^Checker_Context, parameters: []^Ast_Formal_Parameter) -> ^Type_Proc {
+	t := type_new(c.arena, .Proc, Type_Proc)
+
+	t.scope = c.scope
+
+	parameter_count := 0
+	for p in parameters {
+		parameter_count += len(p.names)
+	}
+
+	t.parameters, _ = virtual.make(c.arena, []^Entity, parameter_count)
+
+	index := 0
+	for fp in parameters {
+		type := check_type(c, fp.type)
+		for name in fp.names {
+			e := entity_new(c.arena, .Var, name.tok.text, type, c.scope)
+			e.flags += {.Parameter}
+			if fp.is_var {
+				e.flags += {.By_Var}
+			}
+			scope_insert_entity(c.scope, e)
+			t.parameters[index] = e
+			index += 1
+		}
+	}
+
+	return t
 }
