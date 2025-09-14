@@ -77,7 +77,52 @@ assign_entity_to_operand :: proc(c: ^Checker_Context, e: ^Entity, o: ^Operand, e
 	}
 }
 
+check_expr_or_type :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
+	check_expr_internal(c, o, expr)
+	switch o.mode {
+	case .RValue, .LValue, .Const, .Nil, .Type:
+		// okay
+	case .No_Value:
+		error(c, o.expr.pos, "expected an expression, got no value")
+	case .Builtin:
+		error(c, o.expr.pos, "unexpected built-in expression used as value")
+
+	case .Invalid:
+		// ignore
+	}
+}
 check_expr :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
+	check_expr_internal(c, o, expr)
+	switch o.mode {
+	case .RValue, .LValue, .Const, .Nil:
+		// okay
+	case .Type:
+		error(c, o.expr.pos, "unexpected type when expression was expected")
+	case .No_Value:
+		error(c, o.expr.pos, "expected an expression, got no value")
+	case .Builtin:
+		error(c, o.expr.pos, "unexpected built-in expression used as value")
+	case .Invalid:
+		// ignore
+	}
+}
+check_expr_or_no_value :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
+	check_expr_internal(c, o, expr)
+	switch o.mode {
+	case .RValue, .LValue, .Const, .Nil, .No_Value:
+		// okay
+	case .Type:
+		error(c, o.expr.pos, "unexpected type when expression was expected")
+	case .Builtin:
+		error(c, o.expr.pos, "unexpected built-in expression used as value")
+	case .Invalid:
+		// ignore
+	}
+}
+
+
+
+check_expr_internal :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 	defer if o.mode == .Const {
 		expr.value = o.value
 		expr.type  = o.type
@@ -186,6 +231,36 @@ check_expr :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 	case ^Ast_Binary_Expr:
 		lhs, rhs: Operand
 
+		#partial switch e.op.kind {
+		case .Is:
+			check_expr(c, &lhs, e.lhs)
+			check_expr_or_type(c, &rhs, e.rhs)
+
+			o.value = false
+			o.mode = .Const
+			o.type = t_bool
+			if rhs.mode != .Type {
+				error(c, rhs.expr.pos, "expected a type for 'is'")
+			}
+			o.value = types_equal(lhs.type, rhs.type)
+			return
+
+		case .In:
+			check_expr(c, &lhs, e.lhs)
+			check_expr(c, &rhs, e.rhs)
+
+			o.value = nil
+			o.mode = .RValue
+			o.type = t_bool
+			if !operand_is_value(rhs) && rhs.type.kind != .Set {
+				error(c, rhs.expr.pos, "expected a set value for 'in', got %s", type_to_string(rhs.type))
+			}
+			if !operand_is_value(lhs) && !type_is_integer_like(lhs.type) {
+				error(c, lhs.expr.pos, "expected an integer-like value to test against a test for 'in', got %s", type_to_string(lhs.type))
+			}
+			return
+		}
+
 		check_expr(c, &lhs, e.lhs)
 		check_expr(c, &rhs, e.rhs)
 
@@ -205,8 +280,34 @@ check_expr :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 			} else {
 				o.mode = .Const
 			}
+		} else {
+			#partial switch e.op.kind {
+			case .Add, .Sub, .Mul, .Quo:
+				if !type_is_numeric(lhs.type) {
+					error(c, e.op.pos, "'%s' is only supported for numeric types, got %s", e.op.text, type_to_string(lhs.type))
+				}
+			case .Mod:
+				if !type_is_integer_like(lhs.type) {
+					error(c, e.op.pos, "'%s' is only supported for integer-like types, got %s", e.op.text, type_to_string(lhs.type))
+				}
+			case .Xor:
+				if !type_is_integer_like(lhs.type) && lhs.type.kind != .Bool {
+					error(c, e.op.pos, "'%s' is only supported for integer-like or boolean types, got %s", e.op.text, type_to_string(lhs.type))
+				}
+			case .Equal, .Not_Equal:
+				if !type_is_numeric(lhs.type) && lhs.type.kind != .Set {
+					error(c, e.op.pos, "'%s' is only supported for numeric types, got %s", e.op.text, type_to_string(lhs.type))
+				}
+			case .Less_Than, .Greater_Than, .Less_Than_Equal, .Greater_Than_Equal:
+				if !type_is_numeric(lhs.type) {
+					error(c, e.op.pos, "'%s' is only supported for numeric types, got %s", e.op.text, type_to_string(lhs.type))
+				}
+			case .And, .Or:
+				if lhs.type.kind != .Bool {
+					error(c, e.op.pos, "'%s' is only supported for boolean types, got %s", e.op.text, type_to_string(lhs.type))
+				}
+			}
 		}
-
 
 	case ^Ast_Deref_Expr:
 		check_expr(c, o, e.expr)
@@ -220,7 +321,7 @@ check_expr :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 		}
 
 	case ^Ast_Selector_Expr:
-		check_expr(c, o, e.lhs)
+		check_expr_internal(c, o, e.lhs)
 		#partial switch rhs in e.rhs.variant {
 		case ^Ast_Ident:
 			#partial switch o.mode {
@@ -290,7 +391,7 @@ check_expr :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 		}
 
 	case ^Ast_Call_Expr:
-		check_expr(c, o, e.call)
+		check_expr_internal(c, o, e.call)
 		#partial switch o.mode {
 		case .Builtin:
 			check_builtin(c, o, e.parameters[:])

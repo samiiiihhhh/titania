@@ -259,7 +259,9 @@ parse_expr :: proc(p: ^Parser) -> ^Ast_Expr {
 
 is_relation :: proc(kind: Token_Kind) -> bool {
 	#partial switch kind {
-	case .Equal, .Not_Equal, .Less_Than, .Less_Than_Equal, .Greater_Than, .Greater_Than_Equal, .In, .Is:
+	case .Equal, .Not_Equal,
+	     .Less_Than, .Less_Than_Equal, .Greater_Than, .Greater_Than_Equal,
+	     .In, .Is:
 		return true
 	}
 	return false

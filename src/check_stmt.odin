@@ -75,7 +75,7 @@ check_stmt :: proc(c: ^Checker_Context, stmt: ^Ast_Stmt) {
 
 	case ^Ast_Expr_Stmt:
 		o: Operand
-		check_expr(c, &o, s.expr)
+		check_expr_or_no_value(c, &o, s.expr)
 
 	case ^Ast_Assign_Stmt:
 		lhs, rhs: Operand
