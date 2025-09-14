@@ -1,0 +1,89 @@
+%YAML 1.2
+---
+# See http://www.sublimetext.com/docs/3/syntax.html
+file_extensions:
+  - titania
+scope: source.titania
+
+contexts:
+  # The prototype context is prepended to all contexts but those setting
+  # meta_include_prototype: false.
+  prototype:
+    - include: comments
+
+  main:
+    - include: keywords
+    - include: numbers
+    - include: strings
+    - include: basic-types
+    - include: builtins
+
+  keywords:
+    - match: '\b(array|begin|case|const|do|else|elseif|end|for|if|import|module|of|pointer|proc|record|repeat|return|then|type|until|var|while|xor)\b'
+      scope: keyword.control.titania
+    - match: '\b(and|by|in|is|not|or|to)\b'
+      scope: keyword.operator.titania
+    - match: '\b(false|nil|true)\b'
+      scope: constant.language.titania
+
+  builtins:
+    - match: '\b(abs|lsh|ash|ror|chr|ord|inc|dec|incl|excl|odd|floor|ceil|assert|new|delete|addr|size_of|align_of|copy|print|println|len)\b'
+      scope: variable.function.titania support.function.builtin.titania
+
+
+  numbers:
+    - match: '\b([+-])?[0-9]+(.[0-9]*(e[0-9]+))?\b'
+      scope: constant.numeric.titania
+    - match: '\b([+-])?0x[0-9A-Fa-f]+\b'
+      scope: constant.numeric.titania
+
+  basic-types:
+    - match: '\b(int|real|char|set|byte|bool)\b'
+      scope: storage.type.odin
+
+  strings:
+    # Strings begin and end with quotes, and use backslashes as an escape
+    # character.
+    - match: '"'
+      scope: punctuation.definition.string.begin.titania
+      push: inside_string
+
+  inside_string:
+    - meta_include_prototype: false
+    - meta_scope: string.quoted.double.titania
+    - match: '\.'
+      scope: constant.character.escape.titania
+    - match: '"'
+      scope: punctuation.definition.string.end.titania
+      pop: true
+
+  block-comment:
+    - match: /\*
+      scope: punctuation.definition.comment.odin
+      push:
+        - meta_scope: comment.block.odin
+        - match: \*/
+          scope: punctuation.definition.comment.odin
+          pop: true
+        - include: block-comment
+
+  comments:
+    - include: block-comment
+    - match: //
+      scope: punctuation.definition.comment.odin
+      push:
+        - meta_scope: comment.line.double-slash.odin
+        - match: \n
+          pop: true
+    - match: "#!"
+      scope: punctuation.definition.comment.odin
+      push:
+        - meta_scope: comment.line.double-slash.odin
+        - match: \n
+          pop: true
+    - match: "#[+]"
+      scope: punctuation.definition.comment.odin
+      push:
+        - meta_scope: comment.line.double-slash.odin
+        - match: \n
+          pop: true
