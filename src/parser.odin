@@ -73,7 +73,7 @@ parse :: proc(p: ^Parser, module: ^Module) -> bool {
 }
 
 // module = "module" ident ";" [import_list] decl_sequence
-//          ["begin" stmt_sequence] "end"
+//          ["begin" stmt_sequence] "end" [";"]
 parse_module :: proc(p: ^Parser, module: ^Module) -> bool {
 	p.module = module
 
@@ -97,6 +97,11 @@ parse_module :: proc(p: ^Parser, module: ^Module) -> bool {
 		module.entry = parse_stmt_sequence(p)
 	}
 	expect_token(p, .End) or_return
+	_ = allow_token(p, .Semicolon)
+	if p.curr_token.kind != .EOF {
+		syntax_error(&p.tok, p.curr_token.pos, "unexpected token after module's 'end', got %s", p.curr_token.text)
+	}
+
 	return true
 }
 
@@ -141,7 +146,7 @@ parse_import_decl :: proc(p: ^Parser, tok: Token) -> ^Ast_Import {
 // decl_sequence = ["const" {const_decl ";"}]
 //                 ["type"  {type_decl  ";"}]
 //                 ["var"   {var_decl   ";"}]
-//                 [{proc_de  cl        ";"}]
+//                 [{proc_dec  l        ";"}]
 parse_decl_sequence :: proc(p: ^Parser) -> (seq: [dynamic]^Ast_Decl) {
 	seq.allocator = ast_allocator(p.module)
 
@@ -263,15 +268,15 @@ is_relation :: proc(kind: Token_Kind) -> bool {
 	return false
 }
 
-// simple_expr = ["+" | "-"] term {add_operator term}
+// simple_expr = ["+" | "-"] unary_expr {add_operator unary_expr}
 parse_simple_expr :: proc(p: ^Parser) -> ^Ast_Expr {
 	if peek_token(p, .Add) || peek_token(p, .Sub) {
 		return parse_unary_expr(p)
 	}
-	lhs := parse_term(p)
+	lhs := parse_unary_expr(p)
 	for is_add_operator(p.curr_token.kind) {
 		op := advance_token(p)
-		rhs := parse_term(p)
+		rhs := parse_unary_expr(p)
 
 		bin := ast_new(p.module, op.pos, Ast_Binary_Expr)
 		bin.lhs = lhs
@@ -283,15 +288,15 @@ parse_simple_expr :: proc(p: ^Parser) -> ^Ast_Expr {
 	return lhs
 }
 
-parse_unary_expr :: proc(p: ^Parser) -> ^Ast_Unary_Expr {
-	expr := ast_new(p.module, p.curr_token.pos, Ast_Unary_Expr)
+// unary_expr = ["+" | "-"] term
+parse_unary_expr :: proc(p: ^Parser) -> ^Ast_Expr {
 	if peek_token(p, .Add) || peek_token(p, .Sub) {
+		expr := ast_new(p.module, p.curr_token.pos, Ast_Unary_Expr)
 		expr.op = advance_token(p)
-		expr.expr = parse_simple_expr(p)
+		expr.expr = parse_term(p)
 		return expr
 	}
-	syntax_error(&p.tok, p.curr_token.pos, "invalid unary expression")
-	return expr
+	return parse_term(p)
 }
 
 
@@ -542,7 +547,7 @@ parse_formal_parameters :: proc(p: ^Parser) -> (parameters: [dynamic]^Ast_Formal
 	return
 }
 
-// format_type = "[" "]" qual_ident
+// formal_type = "[" "]" qual_ident
 parse_formal_type :: proc(p: ^Parser) -> Ast_Type {
 	if allow_token(p, .Bracket_Open) {
 		pos := p.prev_token.pos
