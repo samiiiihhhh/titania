@@ -16,7 +16,7 @@ import_list = "import" import_decl {"," import_decl} ";".
 decl_sequence = ["const" {const_decl ";"}]
                 ["type"  {type_decl  ";"}]
                 ["var"   {var_decl   ";"}]
-                [{proc_dec  l        ";"}].
+                [{proc_decl          ";"}].
 
 const_decl = ident "=" const_expr.
 type_decl = ident "="" struct_type.
