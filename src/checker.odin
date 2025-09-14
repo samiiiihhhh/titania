@@ -57,6 +57,8 @@ Module :: struct {
 	scope: ^Scope,
 
 	info: ^Checker_Info,
+
+	error_count: int,
 }
 
 Scope :: struct {

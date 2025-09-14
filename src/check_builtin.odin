@@ -129,9 +129,12 @@ check_builtin :: proc(c: ^Checker_Context, o: ^Operand, parameters: []^Ast_Expr)
 				if !ok {
 					error(c, o.expr.pos, "expected a constant string parameter to '%s", name)
 				} else {
-					r, _ := utf8.decode_rune_in_string(v)
+					r, w := utf8.decode_rune_in_string(v)
 					o.value = i64(r)
 					o.mode = .Const
+					if w != len(v) {
+						error(c, o.expr.pos, "expected a constant string that contains a single unicode codepoint, got %q", v)
+					}
 				}
 			} else {
 				error(c, o.expr.pos, "expected a constant string parameter to '%s', got %s", name, type_to_string(p.type))

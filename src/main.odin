@@ -16,6 +16,10 @@ main :: proc() {
 	module: Module
 	parse(&p, &module)
 
+	if p.tok.error_count != 0 {
+		return
+	}
+
 	info: Checker_Info
 	checker_info_init(&info)
 

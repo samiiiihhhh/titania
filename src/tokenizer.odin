@@ -27,6 +27,8 @@ Tokenizer :: struct {
 	w:  int,  // current rune width in bytes
 
 	curr_line_offset: int,
+
+	error_count: int,
 }
 
 Token_Kind :: enum {
@@ -194,7 +196,84 @@ next_rune :: proc(t: ^Tokenizer) -> rune {
 }
 
 is_valid_string_literal :: proc(str: string) -> bool {
-	// TODO(bill): is_valid_string_literal
+	s := str
+	if len(s) < 2 {
+		return false
+	}
+	quote := s[0]
+	if s[0] != s[len(s)-1] {
+		return false
+	}
+	switch quote {
+	case '"':
+		// okay
+	case:
+		return false
+	}
+	s = s[1 : len(s)-1]
+
+	i := 0
+	for i < len(s) {
+		c := s[i]
+		switch {
+		case c == '\\':
+			i += 1
+			if i >= len(s) {
+				return false
+			}
+			switch s[i] {
+			case '"', '\'', '\\', '/', 'b', 'n', 'r', 't', 'f':
+				i += 1
+
+			case '\r':
+				if i+1 < len(s) && s[i+1] == '\n' {
+					i += 2
+				} else {
+					return false
+				}
+			case '\n':
+				i += 1
+			case 'u':
+				if i >= len(s) {
+					return false
+				}
+				hex := s[i+1:]
+				if len(hex) < 4 {
+					return false
+				}
+				hex = hex[:4]
+				i += 5
+
+				for j := 0; j < 4; j += 1 {
+					c2 := hex[j]
+					switch c2 {
+					case '0'..='9', 'a'..='z', 'A'..='Z':
+						// Okay
+					case:
+						return false
+					}
+				}
+
+			case: return false
+			}
+
+		case c == quote, c < ' ':
+			return false
+
+		case c < utf8.RUNE_SELF:
+			i += 1
+
+		case:
+			r, width := utf8.decode_rune_in_string(s[i:])
+			if r == utf8.RUNE_ERROR && width == 1 {
+				return false
+			}
+			i += width
+		}
+	}
+	if i == len(s) {
+		return true
+	}
 	return true
 }
 

@@ -2,6 +2,7 @@ package titania
 
 import "core:fmt"
 import "core:strconv"
+import "core:mem/virtual"
 
 check_is_boolean :: proc(c: ^Checker_Context, o: ^Operand) {
 	assert(o.type != nil)
@@ -110,8 +111,11 @@ check_expr :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 			o.type  = t_real
 			o.value, _ = strconv.parse_f64(e.tok.text)
 		case .String:
-			str := e.tok.text
-			// TODO(bill): unescape the string
+			allocator := virtual.arena_allocator(c.arena)
+			str, _, ok := strconv.unquote_string(e.tok.text, allocator)
+			if !ok {
+				error(c, e.tok.pos, "unable to unquote the following string: %s", e.tok.text)
+			}
 
 			o.mode  = .Const
 			o.expr  = expr
