@@ -38,6 +38,8 @@ Builtin_Id :: enum {
 
 	print,
 	println,
+
+	len,
 }
 
 
@@ -77,11 +79,12 @@ builtin_strings := [Builtin_Id]string {
 
 	.print    = "print",
 	.println  = "println",
+
+	.len      = "len",
 }
 
 
 check_builtin :: proc(c: ^Checker_Context, o: ^Operand, parameters: []^Ast_Expr) {
-
 	o.type = t_invalid
 
 	id := o.builtin_id
@@ -107,19 +110,35 @@ check_builtin :: proc(c: ^Checker_Context, o: ^Operand, parameters: []^Ast_Expr)
 		}
 
 	case .lsh, .ash, .ror:
-		if len(parameters) != 1 {
-			error(c, o.expr.pos, "expected 1 parameter to '%s', got %d", name, len(parameters))
+		if len(parameters) != 2 {
+			error(c, o.expr.pos, "expected 2 parameter to '%s', got %d", name, len(parameters))
 		}
 		o.mode = .RValue
 		o.type = t_int
 
-		if len(parameters) > 0 {
-			p: Operand
-			check_expr(c, &p, parameters[0])
-			if !type_is_integer_like(p.type) {
-				error(c, o.expr.pos, "expected an integer-like value to '%s', got %s", name, type_to_string(p.type))
+		if len(parameters) > 1 {
+			x, y: Operand
+			check_expr(c, &x, parameters[0])
+			if !type_is_integer_like(x.type) {
+				error(c, o.expr.pos, "expected an integer-like value to '%s', got %s", name, type_to_string(x.type))
 			}
-			o.type = p.type
+			o.type = x.type
+
+			if !types_equal(x.type, y.type) {
+				error(c, x.expr.pos, "mismatched types for '%s', got %s vs %s", name, type_to_string(x.type), type_to_string(y.type))
+			} else if x.mode == .Const && y.mode == .Const {
+				if a, b, ok := type_assert2(x.value, y.value, i64); ok {
+					#partial switch id {
+					case .lsh: o.value = a<<u64(max(b, 0))
+					case .ash: o.value = a>>u64(max(b, 0))
+					case .ror:
+						n :: 64
+						s := u64(b)
+						o.value = a << (n-s) | a >> (s)
+					}
+					o.mode = .Const
+				}
+			}
 		}
 
 	case .chr:
@@ -363,6 +382,34 @@ check_builtin :: proc(c: ^Checker_Context, o: ^Operand, parameters: []^Ast_Expr)
 		for param in parameters {
 			p: Operand
 			check_expr(c, &p, param)
+		}
+
+
+	case .len:
+		o.mode = .Const
+		o.type = t_int
+		o.value = i64(0)
+		if len(parameters) != 1 {
+			error(c, o.expr.pos, "expected 1 parameter to '%s', got %d", name, len(parameters))
+		}
+		if len(parameters) > 0 {
+			p: Operand
+			check_expr(c, &p, parameters[0])
+			if o.type.kind == .Array {
+				t := o.type.variant.(^Type_Array)
+				if t.counts == nil {
+					o.mode = .RValue
+					o.value = nil
+				} else {
+					total_count := i64(1)
+					for count in t.counts {
+						total_count *= count
+					}
+					o.value = total_count
+				}
+			} else {
+				error(c, p.expr.pos, "expected an array value or type to '%s'", name)
+			}
 		}
 	}
 }

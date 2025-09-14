@@ -371,13 +371,13 @@ check_expr :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 	}
 }
 
+type_assert2 :: proc(lhs, rhs: $V, $T: typeid) -> (T, T, bool) {
+	x, x_ok := lhs.(T)
+	y, y_ok := rhs.(T)
+	return x, y, x_ok & y_ok
+}
 
 check_const_binary_expr :: proc(c: ^Checker_Context, lhs: Const_Value, op: Token_Kind, rhs: Const_Value) -> (res: Const_Value) {
-	type_assert2 :: proc(lhs, rhs: Const_Value, $T: typeid) -> (T, T, bool) {
-		x, x_ok := lhs.(T)
-		y, y_ok := rhs.(T)
-		return x, y, x_ok & y_ok
-	}
 
 	if x, y, ok := type_assert2(lhs, rhs, i64); ok {
 		#partial switch op {
