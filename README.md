@@ -76,12 +76,17 @@ for_stmt = "for" ident ":=" expr "to" expr ["by" const_expr] "do" stmt_sequence 
 designator = qual_ident {selector}.
 selector = "." ident | "[" expr_list "]" | "^" | "(" qual_ident ")".
 expr_list = expr {"," expr}.
+
+
+add_operator = "+" | "-" | "xor" | "or".
+mul_operator = "*" | "/" | "%"   | "and".
+relation     = "=" | "<>" | "<" | "<=" | ">" | ">=" | "in" | "is".
 ```
 
 ### Keywords
 ```
 and    else    import  of      then   while
-begin  elseif  in      or      to
+begin  elseif  in      or      to     xor
 by     end     is      proc    true
 case   false   module  record  type
 const  for     nil     repeat  until
