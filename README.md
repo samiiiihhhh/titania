@@ -107,3 +107,35 @@ do     if      not     return  var
 /    |   :=  :   ..
 %    ^
 ```
+
+### Built-in Procedures
+
+Note: These will be added to as the compiler develops
+
+```
+abs(x)            - absolute value of
+lsh(x, y)         - logical shift left
+ash(x, y)         - arithmetic shift right
+ror(x, y)         - rotate right
+chr(i)            - convert int to char
+ord(c)            - convert char to int
+inc(x)            - x := x + 1
+inc(x, y)         - x := x + y
+dec(x)            - x := x - 1
+dec(x, y)         - x := x - y
+incl(x, y)        - include y in set x
+excl(x, y)        - exclude y in set x
+odd(x)            - x % 2 = 0
+floor(x)          - round-down for real
+ceil(x)           - round-up   for real
+assert(cond)      - assert when cond is false
+new(ptr)          - allocate memory
+delete(ptr)       - free memory
+addr(x)           - address of addressable memory
+size_of(x)        - size of the type of 'x'
+align_of(x)       - alignment of the type of 'x'
+copy(dst, src, n) - non-overlapping memory copying from `src` to `dst` of `n` bytes
+print(...)        - variadic print without newline
+println(...)      - variadic print with newline
+len(x)            - length of an array 'x'
+```
