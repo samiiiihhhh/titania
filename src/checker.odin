@@ -22,6 +22,15 @@ Operand :: struct {
 	builtin_id: Builtin_Id,
 }
 
+@(require_results)
+operand_is_value :: proc(o: Operand) -> bool {
+	#partial switch o.mode {
+	case .RValue, .LValue, .Const:
+		return true
+	}
+	return false
+}
+
 Checker_Info :: struct {
 	arena: virtual.Arena,
 	builtin_scope: ^Scope,

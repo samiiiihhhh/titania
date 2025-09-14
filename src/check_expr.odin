@@ -200,6 +200,11 @@ check_expr :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 			error(c, e.op.pos, "mismatching types")
 		} else if lhs.mode == .Const && rhs.mode == .Const {
 			o.value = check_const_binary_expr(c, lhs.value, e.op.kind, rhs.value)
+			if o.value == nil {
+				error(c, e.op.pos, "%s is not supported for %s", e.op.text, type_to_string(lhs.type))
+			} else {
+				o.mode = .Const
+			}
 		}
 
 
@@ -368,5 +373,59 @@ check_expr :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 
 
 check_const_binary_expr :: proc(c: ^Checker_Context, lhs: Const_Value, op: Token_Kind, rhs: Const_Value) -> (res: Const_Value) {
-	return
+	type_assert2 :: proc(lhs, rhs: Const_Value, $T: typeid) -> (T, T, bool) {
+		x, x_ok := lhs.(T)
+		y, y_ok := rhs.(T)
+		return x, y, x_ok & y_ok
+	}
+
+	if x, y, ok := type_assert2(lhs, rhs, i64); ok {
+		#partial switch op {
+		case .Add: return x + y
+		case .Sub: return x - y
+		case .Mul: return x * y
+		case .Quo: return x / y
+		case .Mod: return x % y
+		case .Xor: return x ~ y
+
+		case .Equal:              return x == y
+		case .Not_Equal:          return x != y
+		case .Less_Than:          return x < y
+		case .Less_Than_Equal:    return x <= y
+		case .Greater_Than:       return x > y
+		case .Greater_Than_Equal: return x >= y
+		}
+	}
+
+	if x, y, ok := type_assert2(lhs, rhs, f64); ok {
+		#partial switch op {
+		case .Add: return x + y
+		case .Sub: return x - y
+		case .Mul: return x * y
+		case .Quo: return x / y
+
+		case .Equal:              return x == y
+		case .Not_Equal:          return x != y
+		case .Less_Than:          return x < y
+		case .Less_Than_Equal:    return x <= y
+		case .Greater_Than:       return x > y
+		case .Greater_Than_Equal: return x >= y
+		}
+	}
+
+	if x, y, ok := type_assert2(lhs, rhs, bool); ok {
+		#partial switch op {
+		case .Equal:     return x == y
+		case .Not_Equal: return x != y
+		case .And:       return x & y
+		case .Or:        return x | y
+		case .Xor:       return x ~ y
+		}
+	}
+
+	if x, y, ok := type_assert2(lhs, rhs, string); ok {
+		return nil
+	}
+
+	return nil
 }

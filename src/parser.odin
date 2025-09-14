@@ -370,7 +370,7 @@ parse_element :: proc(p: ^Parser) -> ^Ast_Element {
 
 is_add_operator :: proc(kind: Token_Kind) -> bool {
 	#partial switch kind {
-	case .Add, .Sub, .Or:
+	case .Add, .Sub, .Xor, .Or:
 		return true
 	}
 	return false

@@ -97,6 +97,7 @@ Token_Kind :: enum {
 	Until,
 	Var,
 	While,
+	Xor,
 }
 
 @(rodata)
@@ -166,6 +167,7 @@ token_kind_string := [Token_Kind]string{
 	.Until   = "until",
 	.Var     = "var",
 	.While   = "while",
+	.Xor     = "xor",
 }
 
 

@@ -24,8 +24,8 @@ Type_Kind :: enum u8 {
 
 Type :: struct {
 	kind:   Type_Kind,
-	size:   i32,
-	align:  i32,
+	size:   i64,
+	align:  i64,
 
 	variant: union {
 		^Type_Pointer,
@@ -56,7 +56,7 @@ Type_Record :: struct {
 
 Type_Field :: struct {
 	entity: ^Entity,
-	offset: i32,
+	offset: i64,
 }
 
 
@@ -77,7 +77,7 @@ t_set     := &Type{kind = .Set,     size = 8, align = 8}
 
 
 @(require_results)
-align_forward_i32 :: proc(x, y: i32) -> i32 {
+align_forward_i64 :: proc(x, y: i64) -> i64 {
 	assert(y > 0)
 	assert(y & (y-1) == 0)
 	return x + (y-1) &~ (y-1)
@@ -85,26 +85,26 @@ align_forward_i32 :: proc(x, y: i32) -> i32 {
 
 type_init_offsets_for_record :: proc(record: ^Type_Record) {
 	if record.size == 0 || record.align == 0 {
-		max_alignment := i32(1)
-		offset := i32(0)
+		max_alignment := i64(1)
+		offset := i64(0)
 		for &field in record.fields {
 			al := type_align_of(field.entity.type)
 			max_alignment = max(max_alignment, al)
 
-			offset = align_forward_i32(offset, al)
+			offset = align_forward_i64(offset, al)
 			field.offset = offset
 
 			sz := type_size_of(field.entity.type)
 			offset += sz
 		}
-		size := align_forward_i32(offset, max_alignment)
+		size := align_forward_i64(offset, max_alignment)
 		record.size = size
 		record.align = max_alignment
 	}
 }
 
 @(require_results)
-type_size_of :: proc(t: ^Type) -> i32 {
+type_size_of :: proc(t: ^Type) -> i64 {
 	switch t.kind {
 	case: fallthrough
 	case .Invalid:
@@ -117,7 +117,7 @@ type_size_of :: proc(t: ^Type) -> i32 {
 		for count in array.counts {
 			sz *= count
 		}
-		return i32(sz)
+		return i64(sz)
 	case .Record:
 		record := t.variant.(^Type_Record)
 
@@ -130,7 +130,7 @@ type_size_of :: proc(t: ^Type) -> i32 {
 }
 
 @(require_results)
-type_align_of :: proc(t: ^Type) -> i32 {
+type_align_of :: proc(t: ^Type) -> i64 {
 	if record, ok := t.variant.(^Type_Record); ok {
 		type_init_offsets_for_record(record)
 	}
@@ -155,6 +155,14 @@ type_new_string :: proc(arena: ^virtual.Arena, len: int) -> ^Type {
 	t.counts[0] = i64(len)
 	return t
 }
+
+@(require_results)
+type_new_pointer :: proc(arena: ^virtual.Arena, elem: ^Type) -> ^Type {
+	t := type_new(arena, .Pointer, Type_Pointer)
+	t.elem = elem
+	return t
+}
+
 
 
 @(require_results)
