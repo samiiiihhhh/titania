@@ -86,7 +86,7 @@ check_stmt :: proc(c: ^Checker_Context, stmt: ^Ast_Stmt) {
 		check_expr(c, &lhs, s.lhs)
 		check_expr(c, &rhs, s.rhs)
 		if lhs.mode != .LValue {
-			error(c, s.lhs.pos, "cannot assigned to left-hand-side as it is not addressable")
+			error(c, s.lhs.pos, "cannot assigned to left-hand-side as it is not addressable", )
 		}
 		if rhs.mode == .Nil {
 			#partial switch lhs.type.kind {

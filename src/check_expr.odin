@@ -131,6 +131,8 @@ check_selector :: proc(c: ^Checker_Context, o: ^Operand, rhs: ^Ast_Ident) {
 			if field, ok := scope_lookup_current(record.scope, rhs.tok.text); ok {
 				o.type = field.type
 				o.value = nil
+
+				rhs.entity = field
 				return
 			}
 			error(c, rhs.pos, "unable to find field '%s' for type '%s'", rhs.tok.text, type_to_string(o.type))
@@ -342,7 +344,7 @@ check_expr_internal :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 			o.mode = .Invalid
 		} else {
 			o.type = type_deref(o.type)
-			o.mode = .RValue
+			o.mode = .LValue
 			o.value = nil
 		}
 
