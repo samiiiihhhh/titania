@@ -125,10 +125,15 @@ check_expr_or_no_value :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr
 check_selector :: proc(c: ^Checker_Context, o: ^Operand, rhs: ^Ast_Ident) {
 	#partial switch o.mode {
 	case .RValue, .LValue:
-		#partial switch o.type.kind {
+		type := type_deref(o.type)
+
+		#partial switch type.kind {
 		case .Record:
-			record := o.type.variant.(^Type_Record)
+			record := type.variant.(^Type_Record)
 			if field, ok := scope_lookup_current(record.scope, rhs.tok.text); ok {
+				if o.type.kind == .Pointer {
+					o.mode = .LValue
+				}
 				o.type = field.type
 				o.value = nil
 

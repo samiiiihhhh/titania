@@ -140,8 +140,8 @@ check_type_internal :: proc(c: ^Checker_Context, ast: Ast_Type, decl: ^Ast_Type_
 
 				do_using := false
 				if field.is_using {
-					if type.kind != .Record {
-						error(c, field.pos, "'using' can only be applied to record types")
+					if type_deref(type).kind != .Record {
+						error(c, field.pos, "'using' can only be applied to record or pointer to record types")
 						do_using = false
 					} else if len(field.names) > 1 {
 						error(c, field.pos, "'using' can only be applied to name in a field list, got %d", len(field.names))
@@ -164,7 +164,7 @@ check_type_internal :: proc(c: ^Checker_Context, ast: Ast_Type, decl: ^Ast_Type_
 						if do_using {
 							e.flags += {.Using}
 
-							r := type.variant.(^Type_Record)
+							r := type_deref(type).variant.(^Type_Record)
 							for _, v in r.scope.elements {
 								scope_insert_entity(t.scope, v)
 							}
