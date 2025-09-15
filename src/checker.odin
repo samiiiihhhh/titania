@@ -74,7 +74,7 @@ Module :: struct {
 
 	decls: [dynamic]^Ast_Decl,
 
-	entry: ^Ast_Stmt_Sequence,
+	entry: Maybe(^Ast_Stmt_Sequence),
 
 	scope: ^Scope,
 
@@ -217,8 +217,8 @@ check_module :: proc(info: ^Checker_Info, m: ^Module) {
 		check_decl(c, decl)
 	}
 
-	if m.entry != nil {
-		check_stmt_sequence(c, m.entry)
+	if entry, ok := m.entry.?; ok {
+		check_stmt_sequence(c, entry)
 	}
 }
 

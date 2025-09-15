@@ -717,7 +717,7 @@ parse_do_bad_expr :: proc(p: ^Parser) -> ^Ast_Bad_Expr {
 
 
 
-// while_stmt = "while" expr "do" stmt_sequence
+// while_stmt = "while" expr "then" stmt_sequence
 //              {"elseif" expr "then" stmt_sequence}
 //              "end"
 parse_while_stmt :: proc(p: ^Parser) -> ^Ast_While_Stmt {
@@ -725,7 +725,7 @@ parse_while_stmt :: proc(p: ^Parser) -> ^Ast_While_Stmt {
 
 	stmt.tok_while = expect_token(p, .While)
 	stmt.cond = parse_expr(p)
-	stmt.tok_do = expect_token(p, .Do)
+	stmt.tok_do = expect_token(p, .Then)
 	stmt.body = parse_stmt_sequence(p)
 
 	stmt.elseif_stmts.allocator = ast_allocator(p.module)
@@ -755,7 +755,7 @@ parse_repeat_stmt :: proc(p: ^Parser) -> ^Ast_Repeat_Stmt {
 	return stmt
 }
 
-// for_stmt = "for" ident ":=" expr "to" expr ["by" const_expr] "do" stmt_sequence "end"
+// for_stmt = "for" ident ":=" expr "to" expr ["by" const_expr] "then" stmt_sequence "end"
 parse_for_stmt :: proc(p: ^Parser) -> ^Ast_For_Stmt {
 	stmt := ast_new(p.module, p.curr_token.pos, Ast_For_Stmt)
 
@@ -769,7 +769,7 @@ parse_for_stmt :: proc(p: ^Parser) -> ^Ast_For_Stmt {
 		stmt.tok_by = p.prev_token
 		stmt.by_cond = parse_const_expr(p)
 	}
-	stmt.tok_do = expect_token(p, .Do)
+	stmt.tok_do = expect_token(p, .Then)
 	stmt.body   = parse_stmt_sequence(p)
 	expect_token(p, .End)
 	return stmt

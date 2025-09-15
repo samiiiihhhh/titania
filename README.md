@@ -70,11 +70,11 @@ case_list = label_range {"," label_range}.
 label_range = label [".." label].
 label = integer | string | qual_ident.
 
-while_stmt = "while" expr "do" stmt_sequence
+while_stmt = "while" expr "then" stmt_sequence
              {"elseif" expr "then" stmt_sequence}
              "end".
 repeat_stmt = "repeat" stmt_sequence "until" expr.
-for_stmt = "for" ident ":=" expr "to" expr ["by" const_expr] "do" stmt_sequence "end".
+for_stmt = "for" ident ":=" expr "to" expr ["by" const_expr] "then" stmt_sequence "end".
 
 
 designator = qual_ident {selector}.
@@ -97,7 +97,7 @@ begin  elseif  in      or      to     xor
 by     end     is      proc    true
 case   false   module  record  type
 const  for     nil     repeat  until
-do     if      not     return  var
+       if      not     return  var
 ```
 
 
