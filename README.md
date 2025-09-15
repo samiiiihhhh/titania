@@ -50,7 +50,7 @@ array_type = "["" const_expr {"," const_expr} "]" type.
 record_type = "record" ["(" qual_ident ")"] [field_list_sequence] "end".
 pointer_type = "^" type.
 proc_type = "proc" formal_parameters.
-field_list = ident_list ":" type.
+field_list = ["using"] ident_list ":" type.
 formal_parmeters = "(" [fp_section {";" fp_section}] [";"] ")".
 formal_type = "[" "]" qual_ident.
 
@@ -92,12 +92,11 @@ relation     = "=" | "<>" | "<" | "<=" | ">" | ">=" | "in" | "is".
 
 ### Keywords
 ```
-and    else    import  of      then   while
-begin  elseif  in      or      to     xor
-by     end             proc    true   using
-case   false   module  record  type
-const  for     nil     repeat  until
-       if      not     return  var
+and    else    if      nil   record  true   while
+begin  elseif  import  not   repeat  type   xor
+by     end     in      of    return  until
+case   false   is      or    then    using
+const  for     module  proc  to      var
 ```
 
 
