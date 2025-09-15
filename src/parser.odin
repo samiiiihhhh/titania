@@ -410,8 +410,8 @@ parse_qual_ident :: proc(p: ^Parser) -> Ast_Ident_Or_Qual_Ident {
 		dot := p.prev_token
 		rhs := parse_ident(p)
 		qual := ast_new(p.module, dot.pos, Ast_Qual_Ident)
-		qual.lhs = lhs.tok
-		qual.rhs = rhs.tok
+		qual.lhs = lhs
+		qual.rhs = rhs
 		return qual
 	}
 	return lhs
@@ -465,11 +465,7 @@ parse_struct_type :: proc(p: ^Parser) -> ^Ast_Structured_Type {
 
 		type.tok = expect_token(p, .Record)
 
-		// record_type = "record" ["(" qual_ident ")"] [field_list_sequence] "end"
-		if allow_token(p, .Paren_Open) {
-			type.subtype = parse_qual_ident(p)
-			expect_token(p, .Paren_Close)
-		}
+		// record_type = "record" [field_list_sequence] "end"
 		if !peek_token(p, .End) {
 			type.fields = parse_field_list_sequence(p)
 		}
@@ -507,9 +503,12 @@ parse_field_list_sequence :: proc(p: ^Parser) -> (list: [dynamic]^Ast_Field_List
 	return
 }
 
-// field_list = ident_list ":" type
+// field_list = ["using"] ident_list ":" type
 parse_field_list :: proc(p: ^Parser) -> ^Ast_Field_List {
 	fields := ast_new(p.module, p.curr_token.pos, Ast_Field_List)
+	if allow_token(p, .Using) {
+		fields.is_using = true
+	}
 	fields.names = parse_ident_list(p)
 	expect_token(p, .Colon)
 	fields.type = parse_type(p)

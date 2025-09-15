@@ -269,9 +269,16 @@ type_to_string_to_writer :: proc(w: io.Writer, t: ^Type) {
 			fmt.wprint(w, "^")
 			type_to_string_to_writer(w, t.variant.(^Type_Pointer).elem)
 		case .Array:
+			array := t.variant.(^Type_Array)
 			fmt.wprint(w, "[")
+			for count, i in array.counts {
+				if i > 0 {
+					fmt.wprint(w, ", ")
+				}
+				fmt.wprint(w, count)
+			}
 			fmt.wprint(w, "]")
-			type_to_string_to_writer(w, t.variant.(^Type_Array).elem)
+			type_to_string_to_writer(w, array.elem)
 		case .Record:
 			record := t.variant.(^Type_Record)
 			if record.entity != nil {
@@ -287,7 +294,7 @@ type_to_string_to_writer :: proc(w: io.Writer, t: ^Type) {
 				fmt.wprintf(w, "%s: ", field.entity.name)
 				type_to_string_to_writer(w, field.entity.type)
 			}
-			fmt.wprint(w, "end")
+			fmt.wprint(w, " end")
 		case .Proc:
 			fmt.wprint(w, "proc(")
 			sig := t.variant.(^Type_Proc)

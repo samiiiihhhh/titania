@@ -122,6 +122,26 @@ check_expr_or_no_value :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr
 }
 
 
+check_selector :: proc(c: ^Checker_Context, o: ^Operand, rhs: ^Ast_Ident) {
+	#partial switch o.mode {
+	case .RValue, .LValue:
+		#partial switch o.type.kind {
+		case .Record:
+			record := o.type.variant.(^Type_Record)
+			if field, ok := scope_lookup_current(record.scope, rhs.tok.text); ok {
+				o.type = field.type
+				o.value = nil
+				return
+			}
+			error(c, rhs.pos, "unable to find field '%s' for type '%s'", rhs.tok.text, type_to_string(o.type))
+		case:
+			error(c, rhs.pos, "%s cannot be used in a selector expression only record types, got %s", type_to_string(o.type))
+		}
+	case:
+		error(c, rhs.pos, "%s cannot be used in a selector expression", addressing_mode_string[o.mode])
+	}
+}
+
 
 check_expr_internal :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 	defer if o.mode == .Const {
@@ -181,30 +201,33 @@ check_expr_internal :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 			o.value = false
 		}
 	case ^Ast_Qual_Ident:
-		lhs := e.lhs.text
-		rhs := e.rhs.text
-		module, module_ok := scope_lookup(c.scope, lhs)
-		if !module_ok {
-			error(c, e.pos, "'%s' has not been declared in scope", lhs)
+		rhs := e.rhs.tok.text
+
+		x, x_ok := scope_lookup(c.scope, e.lhs.tok.text)
+		if !x_ok {
+			error(c, e.pos, "'%s' has not been declared in scope", e.lhs.tok.text)
 			o.type = t_invalid
 			o.mode = .Invalid
 			return
 		}
-		if module.kind != .Import {
-			error(c, e.pos, "'%s' is not an import name, got %s", entity_kind_string[module.kind])
-			o.type = t_invalid
-			o.mode = .Invalid
+		e.lhs.entity = x
+		if x.kind == .Import {
+			found, found_ok := scope_lookup(x.import_scope, rhs)
+			if !found_ok {
+				error(c, e.pos, "'%s' does not exist in the x '%s'", rhs, e.lhs.tok.text)
+				o.type = t_invalid
+				o.mode = .Invalid
+				return
+			}
+			assign_entity_to_operand(c, found, o, expr)
+			e.entity = found
 			return
 		}
-		found, found_ok := scope_lookup(module.import_scope, rhs)
-		if !found_ok {
-			error(c, e.pos, "'%s' does not exist in the module '%s'", rhs, lhs)
-			o.type = t_invalid
-			o.mode = .Invalid
-			return
-		}
-		assign_entity_to_operand(c, found, o, expr)
-		e.entity = found
+
+		lhs: Operand
+		check_expr(c, o, e.lhs)
+		check_selector(c, o, e.rhs)
+
 
 	case ^Ast_Unary_Expr:
 		#partial switch e.op.kind {
@@ -325,29 +348,7 @@ check_expr_internal :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 
 	case ^Ast_Selector_Expr:
 		check_expr_internal(c, o, e.lhs)
-		#partial switch rhs in e.rhs.variant {
-		case ^Ast_Ident:
-			#partial switch o.mode {
-			case .RValue, .LValue:
-				#partial switch o.type.kind {
-				case .Record:
-					record := o.type.variant.(^Type_Record)
-					name := rhs.tok.text
-					if field, ok := scope_lookup_current(record.scope, name); ok {
-						o.type = field.type
-						o.value = nil
-					} else {
-						error(c, e.rhs.pos, "unable to find field '%s' for type %s'", name, type_to_string(o.type))
-					}
-				case:
-					error(c, e.rhs.pos, "%s cannot be used in a selector expression only record types, got %s", type_to_string(o.type))
-				}
-			case:
-				error(c, e.rhs.pos, "%s cannot be used in a selector expression", addressing_mode_string[o.mode])
-			}
-		case:
-			error(c, e.rhs.pos, "invalid selector expression")
-		}
+		check_selector(c, o, e.rhs)
 
 
 	case ^Ast_Paren_Expr:

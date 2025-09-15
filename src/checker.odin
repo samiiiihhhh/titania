@@ -145,6 +145,10 @@ scope_pop :: proc(c: ^Checker_Context) -> ^Scope {
 }
 
 scope_insert_entity :: proc(s: ^Scope, e: ^Entity) -> bool {
+	if e == nil {
+		return true
+	}
+
 	assert(e.name  != "")
 	assert(e.scope != nil)
 	if e.name in s.elements {

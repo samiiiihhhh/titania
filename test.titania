@@ -10,13 +10,14 @@ type
 	Foo = record
 		a, b: int
 		c: [BUF_SIZE]char
-		nested: record
-			a, b: real
+		using nested: record
+			x, y: real
 		end
 	end
 
 var
-	w: int
+	w: int;
+	foo: Foo;
 
 proc write_int(x, n: int)
 	var
@@ -54,10 +55,11 @@ begin
 	ptr := addr(i)
 
 	for i := 0 to 10 by 2 then
-
+		foo.x := 123.4
 	end
 end
 
 begin
+
 	test()
 end

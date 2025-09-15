@@ -29,6 +29,7 @@ Entity_Flags :: distinct bit_set[Entity_Flag; u32]
 Entity_Flag :: enum {
 	Parameter,
 	By_Var,
+	Using,
 }
 
 Entity :: struct {

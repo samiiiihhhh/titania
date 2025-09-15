@@ -244,8 +244,8 @@ Ast_Literal :: struct {
 
 Ast_Qual_Ident :: struct {
 	using base: Ast_Expr,
-	lhs: Token,
-	rhs: Token,
+	lhs: ^Ast_Ident,
+	rhs: ^Ast_Ident,
 	entity: ^Entity,
 }
 
@@ -272,7 +272,7 @@ Ast_Selector_Expr :: struct {
 	using base: Ast_Expr,
 	lhs: ^Ast_Expr,
 	tok: Token, // "."
-	rhs: ^Ast_Expr,
+	rhs: ^Ast_Ident,
 }
 
 Ast_Index_Expr :: struct {
@@ -339,13 +339,13 @@ Ast_Pointer_Type :: struct {
 Ast_Record_Type :: struct {
 	using type_base: Ast_Structured_Type,
 	tok: Token, // "record"
-	subtype: Ast_Ident_Or_Qual_Ident,
 
 	fields: [dynamic]^Ast_Field_List,
 }
 
 Ast_Field_List :: struct {
 	pos: Pos,
+	is_using: bool,
 	names: [dynamic]^Ast_Ident,
 	type:  Ast_Type,
 }

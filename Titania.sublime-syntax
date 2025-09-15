@@ -19,9 +19,9 @@ contexts:
     - include: builtins
 
   keywords:
-    - match: '\b(array|begin|case|const|do|else|elseif|end|for|if|import|module|of|pointer|proc|record|repeat|return|then|type|until|var|while|xor)\b'
+    - match: '\b(array|begin|case|const|else|elseif|end|for|if|import|module|of|pointer|proc|record|repeat|return|then|type|until|using|var|while|xor)\b'
       scope: keyword.control.titania
-    - match: '\b(and|by|in|is|not|or|to)\b'
+    - match: '\b(and|by|in|not|or|to)\b'
       scope: keyword.operator.titania
     - match: '\b(false|nil|true)\b'
       scope: constant.language.titania

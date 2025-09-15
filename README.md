@@ -94,7 +94,7 @@ relation     = "=" | "<>" | "<" | "<=" | ">" | ">=" | "in" | "is".
 ```
 and    else    import  of      then   while
 begin  elseif  in      or      to     xor
-by     end     is      proc    true
+by     end             proc    true   using
 case   false   module  record  type
 const  for     nil     repeat  until
        if      not     return  var
