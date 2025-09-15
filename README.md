@@ -78,7 +78,10 @@ for_stmt = "for" ident ":=" expr "to" expr ["by" const_expr] "do" stmt_sequence 
 
 
 designator = qual_ident {selector}.
-selector = "." ident | "[" expr_list "]" | "^" | "(" qual_ident ")".
+selector = "." ident |
+           "[" expr_list "]" |
+           "^" |
+           "(" [expr_list] ")".
 expr_list = expr {"," expr}.
 
 

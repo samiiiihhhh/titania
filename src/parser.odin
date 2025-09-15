@@ -790,7 +790,7 @@ parse_designator :: proc(p: ^Parser) -> ^Ast_Expr {
 		}
 	}
 }
-// selector = "." ident | "[" expr_list "]" | "^" | "(" qual_ident ")"
+// selector = "." ident | "[" expr_list "]" | "^" | "(" [expr_list] ")"
 parse_selector :: proc(p: ^Parser, lhs: ^Ast_Expr) -> ^Ast_Expr {
 	switch {
 	case allow_token(p, .Dot):
@@ -815,7 +815,9 @@ parse_selector :: proc(p: ^Parser, lhs: ^Ast_Expr) -> ^Ast_Expr {
 	case allow_token(p, .Paren_Open):
 		call := ast_new(p.module, lhs.pos, Ast_Call_Expr)
 		call.call = lhs
-		call.parameters = parse_expr_list(p)
+		if p.curr_token.kind != .Paren_Close {
+			call.parameters = parse_expr_list(p)
+		}
 		expect_token(p, .Paren_Close)
 		return call
 	}

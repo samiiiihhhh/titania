@@ -142,7 +142,7 @@ check_expr_internal :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 			return
 		}
 		assign_entity_to_operand(c, found, o, expr)
-
+		e.entity = found
 
 	case ^Ast_Literal:
 		#partial switch e.tok.kind {
@@ -204,6 +204,7 @@ check_expr_internal :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 			return
 		}
 		assign_entity_to_operand(c, found, o, expr)
+		e.entity = found
 
 	case ^Ast_Unary_Expr:
 		#partial switch e.op.kind {

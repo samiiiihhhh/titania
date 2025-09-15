@@ -53,4 +53,7 @@ module out
 		ptr := nil
 		ptr := addr(x)
 	end
+
+begin
+	test()
 end

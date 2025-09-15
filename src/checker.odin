@@ -216,5 +216,9 @@ check_module :: proc(info: ^Checker_Info, m: ^Module) {
 	for decl in m.decls {
 		check_decl(c, decl)
 	}
+
+	if m.entry != nil {
+		check_stmt_sequence(c, m.entry)
+	}
 }
 

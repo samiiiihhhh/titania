@@ -233,7 +233,8 @@ Ast_Ident_Or_Qual_Ident :: union #shared_nil {
 
 Ast_Ident :: struct {
 	using base: Ast_Expr,
-	tok: Token,
+	tok:    Token,
+	entity: ^Entity,
 }
 
 Ast_Literal :: struct {
@@ -245,6 +246,7 @@ Ast_Qual_Ident :: struct {
 	using base: Ast_Expr,
 	lhs: Token,
 	rhs: Token,
+	entity: ^Entity,
 }
 
 Ast_Unary_Expr :: struct {

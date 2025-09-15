@@ -76,6 +76,10 @@ check_stmt :: proc(c: ^Checker_Context, stmt: ^Ast_Stmt) {
 	case ^Ast_Expr_Stmt:
 		o: Operand
 		check_expr_or_no_value(c, &o, s.expr)
+		#partial switch o.mode {
+		case .RValue, .LValue, .Const, .Builtin:
+			error(c, o.expr.pos, "unused expression found")
+		}
 
 	case ^Ast_Assign_Stmt:
 		lhs, rhs: Operand
