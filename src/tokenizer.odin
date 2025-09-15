@@ -28,6 +28,8 @@ Tokenizer :: struct {
 
 	curr_line_offset: int,
 
+	insert_semicolon: bool,
+
 	error_count: int,
 }
 
@@ -294,10 +296,14 @@ get_token :: proc(t: ^Tokenizer) -> (token: Token) {
 			case ' ', '\t', '\r', '\f', '\v':
 				next_rune(t)
 			case '\n':
-				t.line += 1
-				t.curr_line_offset = t.offset
-				t.pos.column = 1
-				next_rune(t)
+				if !t.insert_semicolon {
+					t.line += 1
+					t.curr_line_offset = t.offset
+					t.pos.column = 1
+					next_rune(t)
+					break
+				}
+				return t.ch
 			case:
 				return t.ch
 			}
@@ -347,6 +353,23 @@ get_token :: proc(t: ^Tokenizer) -> (token: Token) {
 
 	case utf8.RUNE_EOF, '\x00':
 		token.kind = .EOF
+		if t.insert_semicolon {
+			t.insert_semicolon = false
+			token.kind = .Semicolon
+			token.text = "\n"
+			return
+		}
+
+	case '\n':
+		token.kind = .Semicolon
+		token.text = "\n"
+
+		t.insert_semicolon = false
+		t.line += 1
+		t.curr_line_offset = t.offset
+		t.pos.column = 1
+
+		return
 
 	case '+':  token.kind = .Add
 	case '-':  token.kind = .Sub
@@ -485,6 +508,16 @@ get_token :: proc(t: ^Tokenizer) -> (token: Token) {
 
 	case:
 		syntax_error(t, token.pos, "invalid character found: %q", ch)
+	}
+
+	#partial switch token.kind {
+	case .Ident, .Integer, .Real, .String,
+	     .Nil, .Caret,
+	     .Paren_Close, .Bracket_Close, .Brace_Close,
+	     .End:
+		t.insert_semicolon = true
+	case:
+		t.insert_semicolon = false
 	}
 
 	token.text = t.data[token.offset : t.offset]
