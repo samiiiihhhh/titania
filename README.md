@@ -108,6 +108,18 @@ do     if      not     return  var
 %    ^
 ```
 
+### Tokenizer Semicolon Insertion Rules
+
+When a newline is seen after the following token kind, a semicolon is inserted, otherwise no semicolon is inserted:
+
+* Identifiers
+* Integer, Real, String, Boolean literals
+* `nil`
+* `^`
+* `)`, `]`, `}`
+* `end`
+
+
 ### Built-in Procedures
 
 Note: These will be added to as the compiler develops

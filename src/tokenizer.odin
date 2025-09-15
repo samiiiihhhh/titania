@@ -512,7 +512,7 @@ get_token :: proc(t: ^Tokenizer) -> (token: Token) {
 
 	#partial switch token.kind {
 	case .Ident, .Integer, .Real, .String,
-	     .Nil, .Caret,
+	     .Nil, .Caret, .False, .True,
 	     .Paren_Close, .Bracket_Close, .Brace_Close,
 	     .End:
 		t.insert_semicolon = true
