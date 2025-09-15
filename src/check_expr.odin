@@ -202,10 +202,14 @@ check_expr_internal :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 			o.mode  = .Const
 			o.expr  = expr
 			o.value = true
+			o.type  = t_bool
 		case .False:
 			o.mode  = .Const
 			o.expr  = expr
 			o.value = false
+			o.type  = t_bool
+		case:
+			error(c, e.tok.pos, "unknown literal")
 		}
 	case ^Ast_Qual_Ident:
 		rhs := e.rhs.tok.text
@@ -513,8 +517,33 @@ check_expr_internal :: proc(c: ^Checker_Context, o: ^Operand, expr: ^Ast_Expr) {
 				return
 			}
 
-			o.mode = .No_Value
-			o.type = t_invalid
+			defer {
+				o.mode = .No_Value
+				o.type = t_invalid
+			}
+
+			sig := o.type.variant.(^Type_Proc)
+			if len(sig.parameters) != len(e.parameters) {
+				error(c, e.call.pos, "expected %d parameters, got %d", len(sig.parameters), len(e.parameters))
+
+				// Type check them any way
+				for param in e.parameters {
+					p: Operand
+					check_expr(c, &p, param)
+				}
+
+				return
+			}
+
+			for param, i in e.parameters {
+				src: Operand
+				check_expr(c, &src, param)
+				dst := sig.parameters[i].type
+				if !types_equal(src.type, dst) {
+					error(c, src.expr.pos, "parameter-%d types do not match, got %s expected %s", i, type_to_string(src.type), type_to_string(dst))
+				}
+			}
+
 		case:
 			o.mode = .No_Value
 			o.type = t_invalid
